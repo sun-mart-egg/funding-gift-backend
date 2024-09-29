@@ -52,6 +52,7 @@ jobs:
           username: ${{ secrets.USERNAME }} # GCP 서버 유저명
           key: ${{ secrets.SSH_KEY }} # SSH 프라이빗 키
           port: 22
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: ./be.tar
           target: /home/${{ secrets.USERNAME }}/be.tar
 
@@ -63,6 +64,7 @@ jobs:
           username: ${{ secrets.USERNAME }} # GCP 서버 유저명
           key: ${{ secrets.SSH_KEY }} # SSH 프라이빗 키
           port: 22
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             # Docker 이미지 로드
             docker load -i /home/${{ secrets.USERNAME }}/be.tar
