@@ -67,19 +67,19 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             # Docker 이미지 로드
-            docker load -i /home/${{ secrets.USERNAME }}/be.tar
+            sudo docker load -i /home/${{ secrets.USERNAME }}/be.tar
             
             # 기존 컨테이너 중지 및 삭제
             RUNNING_CONTAINER=$(docker ps -a --filter "name=be" --format "{{.Names}}")
             if [ "$RUNNING_CONTAINER" ]; then
               echo "Stopping and removing the existing container..."
-              docker stop be || true
-              docker rm be || true
+              sudo docker stop be || true
+              sudo docker rm be || true
             fi
 
             # Docker 이미지 실행
             echo "Running new Docker container..."
-            docker run -d --name be -p 8081:8081 be:latest
+            sudo docker run -d --name be -p 8081:8081 be:latest
 
             # Cleanup tar file
-            rm /home/${{ secrets.USERNAME }}/be.tar
+            sudo rm /home/${{ secrets.USERNAME }}/be.tar
