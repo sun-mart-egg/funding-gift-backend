@@ -54,7 +54,7 @@ jobs:
           port: 22
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: ./be.tar
-          target: /home/${{ secrets.USERNAME }}/be.tar
+          target: /home/${{ secrets.USERNAME }}
 
       # 8. SSH to GCP server and load Docker Image, then run the container
       - name: Deploy Docker Image on GCP server
@@ -82,4 +82,4 @@ jobs:
             sudo docker run -d --name be -p 8081:8081 be:latest
 
             # Cleanup tar file
-#            sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
+            sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
