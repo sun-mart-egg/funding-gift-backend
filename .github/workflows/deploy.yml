@@ -79,7 +79,7 @@ jobs:
 
             # Docker 이미지 실행
             echo "Running new Docker container..."
-            sudo docker run -d --name be -p 8081:8081 be:latest
+            sudo docker run -d --name be --network web-network -p 8081:8081 be:latest
 
             # Cleanup tar file
             sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
