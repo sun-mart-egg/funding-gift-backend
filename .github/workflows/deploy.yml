@@ -31,7 +31,7 @@ jobs:
       # 4. Build Docker Image
       - name: Build Docker Image
         run: |
-          docker build -t be:latest .
+          docker build -t be:latest ./BE
 
       # 5. Save Docker Image to tar file
       - name: Save Docker Image
