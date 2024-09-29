@@ -19,14 +19,14 @@ jobs:
         env:
           SECRET_CONTENT: ${{ secrets.SECRET }}
         run: |
-          echo "$SECRET_CONTENT" > ./src/main/resources/application-secret.yml
+          echo "$SECRET_CONTENT" > ./BE/src/main/resources/application-secret.yml
 
       # 3. Download fcm-certification.json from GitHub Secrets
       - name: Download fcm-certification.json
         env:
           FCM_CERT: ${{ secrets.FCM_SECRET }}
         run: |
-          echo "$FCM_CERT" > ./src/main/resources/fcm-certification.json
+          echo "$FCM_CERT" > ./BE/src/main/resources/fcm-certification.json
 
       # 4. Build Docker Image
       - name: Build Docker Image
