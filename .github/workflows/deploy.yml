@@ -82,4 +82,4 @@ jobs:
             sudo docker run -d --name be -p 8081:8081 be:latest
 
             # Cleanup tar file
-            sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
+#            sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
