@@ -38,7 +38,13 @@ jobs:
         run: |
           docker save be:latest -o be.tar
 
-      # 6. Copy Docker Image tar file to GCP server
+      # 6. Set permissions for the tar file
+      - name: Set permissions for the tar file
+        run: |
+          chmod 755 be.tar   # 권한을 변경하여 다른 프로세스가 접근할 수 있도록 설정
+          ls -al             # 권한 변경 후 파일 확인
+
+      # 7. Copy Docker Image tar file to GCP server
       - name: Copy Docker Image to GCP server
         uses: appleboy/scp-action@master
         with:
@@ -49,7 +55,7 @@ jobs:
           source: ./be.tar
           target: /home/${{ secrets.USERNAME }}/be.tar
 
-      # 7. SSH to GCP server and load Docker Image, then run the container
+      # 8. SSH to GCP server and load Docker Image, then run the container
       - name: Deploy Docker Image on GCP server
         uses: appleboy/ssh-action@master
         with:
