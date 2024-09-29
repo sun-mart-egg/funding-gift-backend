@@ -1,0 +1,77 @@
+name: Deploy Spring Boot Application with Docker
+
+on:
+  push:
+    branches:
+      - "main"  # main 브랜치에 push가 발생했을 때만 실행
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout the main branch (default)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 2. Download application-secret.yml from GitHub Secrets
+      - name: Download application-secret.yml
+        env:
+          SECRET_CONTENT: ${{ secrets.SECRET }}
+        run: |
+          echo "$SECRET_CONTENT" > ./src/main/resources/application-secret.yml
+
+      # 3. Download fcm-certification.json from GitHub Secrets
+      - name: Download fcm-certification.json
+        env:
+          FCM_CERT: ${{ secrets.FCM_SECRET }}
+        run: |
+          echo "$FCM_CERT" > ./src/main/resources/fcm-certification.json
+
+      # 4. Build Docker Image
+      - name: Build Docker Image
+        run: |
+          docker build -t be:latest .
+
+      # 5. Save Docker Image to tar file
+      - name: Save Docker Image
+        run: |
+          docker save be:latest -o be.tar
+
+      # 6. Copy Docker Image tar file to GCP server
+      - name: Copy Docker Image to GCP server
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.GCP_HOST }} # GCP 서버 호스트
+          username: ${{ secrets.GCP_USER }} # GCP 서버 유저명
+          key: ${{ secrets.GCP_SSH_KEY }} # SSH 프라이빗 키
+          port: 22
+          source: ./be.tar
+          target: /home/${{ secrets.GCP_USER }}/be.tar
+
+      # 7. SSH to GCP server and load Docker Image, then run the container
+      - name: Deploy Docker Image on GCP server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.GCP_HOST }} # GCP 서버 호스트
+          username: ${{ secrets.GCP_USER }} # GCP 서버 유저명
+          key: ${{ secrets.GCP_SSH_KEY }} # SSH 프라이빗 키
+          port: 22
+          script: |
+            # Docker 이미지 로드
+            docker load -i /home/${{ secrets.GCP_USER }}/be.tar
+            
+            # 기존 컨테이너 중지 및 삭제
+            RUNNING_CONTAINER=$(docker ps -a --filter "name=be" --format "{{.Names}}")
+            if [ "$RUNNING_CONTAINER" ]; then
+              echo "Stopping and removing the existing container..."
+              docker stop be || true
+              docker rm be || true
+            fi
+
+            # Docker 이미지 실행
+            echo "Running new Docker container..."
+            docker run -d --name be -p 8081:8081 be:latest
+
+            # Cleanup tar file
+            rm /home/${{ secrets.GCP_USER }}/be.tar
