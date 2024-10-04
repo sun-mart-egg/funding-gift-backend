@@ -88,5 +88,9 @@ jobs:
             echo "Running new Docker container..."
             sudo docker run -d --name be --network infra_web-network -p 8081:8081 be:latest
 
+            
+            # Step 2: 추가 네트워크 연결
+            sudo docker network connect infra_backend-network be
+
             # Cleanup tar file
             sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
