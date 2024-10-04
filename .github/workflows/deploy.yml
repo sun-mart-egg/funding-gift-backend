@@ -67,7 +67,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             # 기존 컨테이너 중지 및 삭제
-            RUNNING_CONTAINER=$(docker ps -a --filter "name=be" --format "{{.Names}}")
+            RUNNING_CONTAINER=$(sudo docker ps -a --filter "name=be" --format "{{.Names}}")
             if [ "$RUNNING_CONTAINER" ]; then
               echo "Stopping and removing the existing container..."
               sudo docker stop be || true
@@ -75,7 +75,7 @@ jobs:
             fi
             
             # Docker 이미지 삭제
-            EXISTING_IMAGE=$(docker images -q be:latest)
+            EXISTING_IMAGE=$(sudo docker images -q be:latest)
             if [ "$EXISTING_IMAGE" ]; then
             echo "Removing the existing image..."
             sudo docker rmi be:latest || true
