@@ -52,6 +52,7 @@ public class SecurityConfig {
                         .requestMatchers(antMatcher("/api/payment-info/**")).authenticated()
                         .requestMatchers(antMatcher("/h2-console/**")).permitAll()
                         .requestMatchers(antMatcher("/swagger-ui/")).permitAll()
+                        .requestMatchers(antMatcher("/login-callback")).permitAll() // login-callback에 대한 허용 추가
                         .anyRequest().permitAll()
                 )
                 // OAuth2 로그인 설정
