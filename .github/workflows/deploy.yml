@@ -66,6 +66,13 @@ jobs:
           port: 22
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
+            # Docker 이미지 삭제
+            EXISTING_IMAGE=$(docker images -q be:latest)
+            if [ "$EXISTING_IMAGE" ]; then
+            echo "Removing the existing image..."
+            sudo docker rmi be:latest || true
+            fi
+          
             # Docker 이미지 로드
             sudo docker load -i /home/${{ secrets.USERNAME }}/be.tar
             
@@ -83,10 +90,3 @@ jobs:
 
             # Cleanup tar file
             sudo rm -rf /home/${{ secrets.USERNAME }}/be.tar
-            
-            # Docker 이미지 삭제
-            EXISTING_IMAGE=$(docker images -q be:latest)
-            if [ "$EXISTING_IMAGE" ]; then
-            echo "Removing the existing image..."
-            sudo docker rmi be:latest || true
-            fi
