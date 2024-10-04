@@ -66,6 +66,14 @@ jobs:
           port: 22
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
+            # 기존 컨테이너 중지 및 삭제
+            RUNNING_CONTAINER=$(docker ps -a --filter "name=be" --format "{{.Names}}")
+            if [ "$RUNNING_CONTAINER" ]; then
+              echo "Stopping and removing the existing container..."
+              sudo docker stop be || true
+              sudo docker rm be || true
+            fi
+            
             # Docker 이미지 삭제
             EXISTING_IMAGE=$(docker images -q be:latest)
             if [ "$EXISTING_IMAGE" ]; then
@@ -76,14 +84,6 @@ jobs:
             # Docker 이미지 로드
             sudo docker load -i /home/${{ secrets.USERNAME }}/be.tar
             
-            # 기존 컨테이너 중지 및 삭제
-            RUNNING_CONTAINER=$(docker ps -a --filter "name=be" --format "{{.Names}}")
-            if [ "$RUNNING_CONTAINER" ]; then
-              echo "Stopping and removing the existing container..."
-              sudo docker stop be || true
-              sudo docker rm be || true
-            fi
-
             # Docker 이미지 실행
             echo "Running new Docker container..."
             sudo docker run -d --name be --network infra_web-network -p 8081:8081 be:latest
