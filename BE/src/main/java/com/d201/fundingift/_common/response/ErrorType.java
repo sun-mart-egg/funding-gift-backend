@@ -1,6 +1,5 @@
 package com.d201.fundingift._common.response;
 
-import com.amazonaws.services.ec2.model.transform.ResetEbsDefaultKmsKeyIdResultStaxUnmarshaller;
 import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
