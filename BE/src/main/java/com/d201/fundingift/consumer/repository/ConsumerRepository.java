@@ -14,5 +14,6 @@ public interface ConsumerRepository extends JpaRepository<Consumer, Long> {
     Optional<Consumer> findByIdAndDeletedAtIsNull(Long id);
     Boolean existsByIdAndDeletedAtIsNull(Long Id);
     List<Consumer> findByBirthday(String birthday);
+    Optional<Consumer> findByConsunerIdAndEdletedAtIsNull(Long Id); // 회원탈퇴 - 논리삭제
 
 }

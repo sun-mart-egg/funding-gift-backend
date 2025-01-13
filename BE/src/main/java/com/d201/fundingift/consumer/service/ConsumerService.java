@@ -164,5 +164,18 @@ public class ConsumerService {
         return false;
     }
 
+    // 회원탈퇴
+    @Transactional
+    public void withdrawConsumer(Long consumerId){
+        Consumer consumer = consumerRepository.findByConsumerIdAndDeletedAtIsNull(consumerId)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 소비자 ID 입니다"));
+        consumer.setDeletedAt((LocalDateTime.now()));
+        consumerRepository.save(consumer);
+
+        // 친구 관련 관계 조회 추가 예정
+
+        // 친구 관계 논리 삭제 추가 예정
+    }
+
 
 }

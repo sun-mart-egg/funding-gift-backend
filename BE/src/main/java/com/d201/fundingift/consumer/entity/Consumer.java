@@ -12,6 +12,7 @@ import org.hibernate.annotations.SQLDelete;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -48,6 +49,9 @@ public class Consumer extends BaseTime {
 
     @Column(nullable = true, length = 6)
     private String gender;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt; // 논리 삭제를 위한 탈퇴 시간
 
     @OneToMany(mappedBy = "consumer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Address> addresses = new ArrayList<>();
