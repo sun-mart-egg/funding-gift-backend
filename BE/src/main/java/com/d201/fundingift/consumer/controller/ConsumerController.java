@@ -107,7 +107,7 @@ public class ConsumerController {
     @PostMapping("/withdraw")
     public SuccessResponse<Void> withdrawConsumer() {
         log.info("ConsumerController.withdrawConsumer");
-        Long consumerId = securityUtil.getConumerId();
+        Long consumerId = securityUtil.getConsumerId();
         consumerService.withdrawConsumer(consumerId);
         return ResponseUtils.ok(SuccessType.WITHDRAW_CONSUMER_SUCCESS);
     }

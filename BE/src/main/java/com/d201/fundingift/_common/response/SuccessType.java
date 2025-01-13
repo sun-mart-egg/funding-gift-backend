@@ -10,7 +10,7 @@ public enum SuccessType {
     GET_CONSUMER_INFO_SUCCESS("사용자 정보 조회에 성공하였습니다."),
     PUT_CONSUMER_ADDITION_INFO_SUCCESS("추가 정보 입력에 성공하였습니다."),
     CHECK_CONSUMER_IN_PROGRESS_FUNDING("진행중인 펀딩 확인에 성공하였습니다."),
-    WITHDRAW_COSUMER_SUCCESS("회원탈퇴가 성공적으로 완료되었습니다");
+    WITHDRAW_CONSUMER_SUCCESS("회원탈퇴가 성공적으로 완료되었습니다"),
 
     // 친구
     GET_KAKAO_FRIEND_INFO_SUCCESS("카카오 친구 목록 조회에 성공하였습니다."),

@@ -167,14 +167,20 @@ public class ConsumerService {
     // 회원탈퇴
     @Transactional
     public void withdrawConsumer(Long consumerId){
-        Consumer consumer = consumerRepository.findByConsumerIdAndDeletedAtIsNull(consumerId)
+        Consumer consumer = consumerRepository.findByIdAndDeletedAtIsNull(consumerId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 소비자 ID 입니다"));
-        consumer.setDeletedAt((LocalDateTime.now()));
-        consumerRepository.save(consumer);
 
-        // 친구 관련 관계 조회 추가 예정
+        // 2. 친구 관계 삭제 (예시: 친구 관계 테이블에서 해당 사용자 ID 삭제)
+        // friendRepository.deleteByConsumerId(consumerId); // 친구 관련 로직 추가
 
-        // 친구 관계 논리 삭제 추가 예정
+        // 3. 연관 엔티티 처리 (cascade 설정에 따라 자동 삭제 또는 논리 삭제)
+//        consumer.getAttendances().clear(); // 참석 정보 제거
+//        consumer.getAddresses().clear();   // 주소 정보 제거
+//        consumer.getAccounts().clear();    // 계좌 정보 제거
+//        consumer.getReviews().clear();     // 리뷰 정보 제거
+
+        // 4. 논리 삭제 (JPA에서 삭제 처리하면 @SQLDelete가 작동)
+        consumerRepository.delete(consumer); // @SQLDelete에 정의된 쿼리가 실행됨
     }
 
 
