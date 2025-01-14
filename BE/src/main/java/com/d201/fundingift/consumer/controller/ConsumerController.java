@@ -94,24 +94,6 @@ public class ConsumerController {
         return ResponseUtils.ok(SuccessType.LOGOUT_SUCCESS);
     }
 
-    @Operation(summary = "회원탈퇴",
-            description = "현재 사용자가 자신의 계정을 탈퇴합니다. 모든 관련 데이터는 논리삭제 처리됩니다.")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200",
-                    description = "성공",
-                    useReturnTypeSchema = true),
-            @ApiResponse(responseCode = "400",
-                    description = "유효하지 않은 요청",
-                    useReturnTypeSchema = true)
-    })
-    @PostMapping("/withdraw")
-    public SuccessResponse<Void> withdrawConsumer() {
-        log.info("ConsumerController.withdrawConsumer");
-        Long consumerId = securityUtil.getConsumerId();
-        consumerService.withdrawConsumer(consumerId);
-        return ResponseUtils.ok(SuccessType.WITHDRAW_CONSUMER_SUCCESS);
-    }
-
     @GetMapping("/in-progress-funding")
     @Operation(summary = "진행 중인 펀딩 확인", description = "사용자가 진행 중이거나 참여 중인 펀딩이 있는지 확인합니다.")
     public SuccessResponse<Boolean> isConsumerInProgressOrAttendanceFunding() {

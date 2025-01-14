@@ -182,6 +182,4 @@ public class ConsumerService {
         // 4. 논리 삭제 (JPA에서 삭제 처리하면 @SQLDelete가 작동)
         consumerRepository.delete(consumer); // @SQLDelete에 정의된 쿼리가 실행됨
     }
-
-
 }
