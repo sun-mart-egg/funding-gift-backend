@@ -185,6 +185,15 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
             // 친구 목록 전부 삭제
             friendService.deleteAllFriendsByConsumerId(consumerId);
+            log.info("Deleted all friends for consumerId: {}", consumerId);
+
+            // 4. Consumer 논리 삭제
+            try {
+                consumerService.withdrawConsumer(consumerId); // Consumer 논리 삭제 메서드 호출
+                log.info("Consumer has been logically deleted: {}", consumerId);
+            } catch (Exception e) {
+                log.error("Error logically deleting consumer for consumerId: {}: {}", consumerId, e.getMessage());
+            }
 
             log.info("Completed unlink process for consumerId: {}", consumerId);
 
