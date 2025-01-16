@@ -8,5 +8,5 @@ import lombok.Getter;
 public class GetFriendCommand {
 
     private String socialId;
-    private Boolean favorite;
+    private Boolean isFavorite;
 }

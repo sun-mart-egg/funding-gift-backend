@@ -53,7 +53,7 @@ public class KakaoFriendClient implements FriendExternalPort {
                 response.getBody()
                         .get("elements")
                         .forEach(element -> list.add(GetFriendCommand.builder()
-                                        .favorite(element.get("favorite").asBoolean())
+                                        .isFavorite(element.get("favorite").asBoolean())
                                         .socialId(element.get("id").asText())
                                 .build()));
 

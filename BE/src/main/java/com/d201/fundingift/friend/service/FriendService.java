@@ -61,11 +61,11 @@ public class FriendService {
             friendRepository
                     .findByConsumerIdAndToConsumerId(consumerId, toConsumer.getId())
                     .ifPresentOrElse(friend -> {
-                        friend.toggleFavorite(f.getFavorite());
+                        friend.toggleFavorite(f.getIsFavorite());
                         friendRepository.save(friend);
                             }, () -> {
                                 friendRepository
-                                        .save(Friend.from(consumer, toConsumer, f.getFavorite()));
+                                        .save(Friend.from(consumer, toConsumer, f.getIsFavorite()));
                             });
 
         }
