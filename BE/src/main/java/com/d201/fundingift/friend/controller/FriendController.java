@@ -40,11 +40,11 @@ public class FriendController {
                     description = "성공",
                     useReturnTypeSchema = true)
     })
-    @GetMapping("/syn")
-    public SuccessResponse<GetFriendsResponse> synchronizeFriends() {
-        GetFriendsResponse friendsResponse = friendService.synchronizeFriends(securityUtil.getConsumerId());
+    @PutMapping("/syn")
+    public SuccessResponse<Void> synchronizeFriends() {
+        friendService.synchronizeFriends(securityUtil.getConsumerId());
 
-        return ResponseUtils.ok(friendsResponse, SuccessType.GET_KAKAO_FRIEND_INFO_SUCCESS);
+        return ResponseUtils.ok(SuccessType.GET_KAKAO_FRIEND_INFO_SUCCESS);
     }
 
     @Operation(summary = "내 친구 목록 조회 (소비자)",

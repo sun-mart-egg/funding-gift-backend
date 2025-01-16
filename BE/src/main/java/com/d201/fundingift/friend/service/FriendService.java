@@ -41,7 +41,7 @@ public class FriendService {
      * 카카오톡 즐겨찾기 친구는 친한 친구로 설정하여 DB에 저장/업데이트 합니다.
      */
     @Transactional
-    public GetFriendsResponse synchronizeFriends(Long consumerId) {
+    public void synchronizeFriends(Long consumerId) {
         List<GetFriendCommand> friends = friendExternalPort.getFriends(consumerId);
         Consumer consumer = findByConsumerId(consumerId)
                 .orElseThrow(() -> new CustomException(CONSUMER_NOT_FOUND));
@@ -69,8 +69,6 @@ public class FriendService {
                             });
 
         }
-
-        return getFriends(consumerId);
     }
 
     // 친구 목록 조회
