@@ -8,8 +8,8 @@ import com.d201.fundingift._common.util.SecurityUtil;
 import com.d201.fundingift.attendance.repository.AttendanceRepository;
 import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.consumer.repository.ConsumerRepository;
-import com.d201.fundingift.friend.entity.Friend;
-import com.d201.fundingift.friend.repository.FriendRepository;
+import com.d201.fundingift.friend.domain.Friend;
+import com.d201.fundingift.friend.domain.port.FriendRepository;
 import com.d201.fundingift.funding.dto.request.DeleteFundingRequest;
 import com.d201.fundingift.funding.dto.request.PostFundingRequest;
 import com.d201.fundingift.funding.dto.response.GetFundingCalendarResponse;
@@ -155,7 +155,7 @@ public class FundingService {
         Long myConsumerId = securityUtil.getConsumerId();
 
         //친구 리스트 조회
-        List<Friend> friends = friendRepository.findByConsumerId(myConsumerId);
+        List<Friend> friends = friendRepository.findAllByConsumerId(myConsumerId);
 
         return getFundingsFeedSliceList(findAllByConsumerIdsAndFundingStatus(friends, pageable), friends);
     }
@@ -206,16 +206,16 @@ public class FundingService {
         Long myConsumerId = securityUtil.getConsumerId();
 
         //친구 리스트 조회
-        List<Friend> friends = friendRepository.findByConsumerId(myConsumerId);
+        List<Friend> friends = friendRepository.findAllByConsumerId(myConsumerId);
 
         for(Friend f : friends) {
 
             //친구가 날 친한 친구로 설정 했는지 확인
-            if(checkingIsFavoriteFriend(f.getToConsumerId(), myConsumerId)) {
+            if(checkingIsFavoriteFriend(f.getToConsumer().getId(), myConsumerId)) {
                 //친한 친구로 설정한 경우 isPrivate 상관 없이 모두 조회
                 fundingList.addAll(
                         fundingRepository
-                                .findAllByConsumerIdAndDeletedAtIsNull(f.getToConsumerId(), year, month)
+                                .findAllByConsumerIdAndDeletedAtIsNull(f.getToConsumer().getId(), year, month)
                                 .stream()
                                 .map(GetFundingCalendarResponse::from)
                                 .toList()
@@ -226,7 +226,7 @@ public class FundingService {
             //친한 친구가 아닌경우 IsPrivate == false만 조회
             fundingList.addAll(
                     fundingRepository
-                            .findAllByConsumerIdAndIsPrivateAndDeletedAtIsNull(f.getToConsumerId(), year, month)
+                            .findAllByConsumerIdAndIsPrivateAndDeletedAtIsNull(f.getToConsumer().getId(), year, month)
                             .stream()
                             .map(GetFundingCalendarResponse::from)
                             .toList()
@@ -277,8 +277,8 @@ public class FundingService {
         Map<Long, Friend> toFriends = new HashMap<>();
 
         for(Friend f : friends) {
-            Optional<Friend> toFriend =friendRepository.findById(f.getToConsumerId() + ":" + f.getConsumerId());
-            toFriend.ifPresent(friend -> toFriends.put(f.getToConsumerId(), friend));
+            Optional<Friend> toFriend = friendRepository.findByConsumerIdAndToConsumerId(f.getToConsumer().getId(), f.getConsumer().getId());
+            toFriend.ifPresent(friend -> toFriends.put(f.getToConsumer().getId(), friend));
         }
 
         List<Funding> changed = new ArrayList<>();
@@ -321,7 +321,9 @@ public class FundingService {
 
     private Slice<Funding> findAllByConsumerIdsAndFundingStatus(List<Friend> friends, Pageable pageable) {
         List<Long> friendIds = friends.stream()
-                .map(Friend::getToConsumerId).toList();
+                .map(Friend::getToConsumer)
+                .map(Consumer::getId)
+                .toList();
 
         return fundingRepository.findAllByConsumerIdsAndFundingStatusAndDeletedAtIsNull(friendIds, pageable);
     }
@@ -332,19 +334,19 @@ public class FundingService {
     }
 
     private void checkingFriend(Long consumerId, Long toConsumerId) {
-        friendRepository.findById(consumerId + ":" + toConsumerId)
+        friendRepository.findByConsumerIdAndToConsumerId(consumerId, toConsumerId)
                 .orElseThrow(() -> new CustomException(ErrorType.FRIEND_NOT_FOUND));
     }
 
     private boolean checkingIsFavoriteFriend(Long toConsumerId, Long consumerId) {
-        Optional<Friend> friend = friendRepository.findById(toConsumerId + ":" + consumerId);
+        Optional<Friend> friend = friendRepository.findByConsumerIdAndToConsumerId(toConsumerId, consumerId);
 
         //보려는 펀딩 목록의 대상에 본인이 친구가 아니거나 친한 친구가 아닌 경우 -> false
         return friend.isPresent() && friend.get().getIsFavorite();
     }
 
     private void checkingIsFavoriteFriendOrElseThrow(Long toConsumerId, Long consumerId) {
-        friendRepository.findById(toConsumerId + ":" + consumerId)
+        friendRepository.findByConsumerIdAndToConsumerId(toConsumerId, consumerId)
                 .orElseThrow(() -> new CustomException(ErrorType.FRIEND_NOT_IS_FAVORITE));
     }
 
@@ -396,7 +398,8 @@ public class FundingService {
 
     private List<Consumer> getConsumersByToConsumerIdAndFavorite(Long toConsumerId) {
         List<Long> consumerIds =  friendRepository.findAllByToConsumerIdAndIsFavorite(toConsumerId, true)
-                .stream().map(Friend::getConsumerId).toList();
+                .stream().map(Friend::getConsumer)
+                .map(Consumer::getId).toList();
         return consumerIds.stream()
                 .map(id -> consumerRepository.findByIdAndDeletedAtIsNull(id).orElse(null))
                 .collect(Collectors.toList());

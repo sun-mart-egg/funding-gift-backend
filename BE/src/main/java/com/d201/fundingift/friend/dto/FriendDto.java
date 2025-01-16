@@ -1,48 +1,43 @@
 package com.d201.fundingift.friend.dto;
 
 import com.d201.fundingift.consumer.entity.Consumer;
-import com.d201.fundingift.friend.entity.Friend;
-import com.google.gson.annotations.SerializedName;
+import com.d201.fundingift.friend.domain.Friend;
 import lombok.Builder;
 import lombok.Data;
 
 @Data
 public class FriendDto {
-    private Long id; // 카카오 소셜 ID
-    private Long consumerId; // 소비자 ID
-    private Boolean favorite;
-    @SerializedName("profile_nickname")
-    private String profileNickname;
-    @SerializedName("profile_thumbnail_image")
-    private String profileThumbnailImage;
+    private Long id; // friend ID
+    private Boolean isFavorite;
+    private Long toConsumerId; // 소비자의 친구 소비자 ID
+    private String name;
+    private String profileImageUrl;
 
     @Builder
-    public FriendDto(Long id,Long consumerId, Boolean favorite, String profileNickname, String profileThumbnailImage) {
+    private FriendDto(Long id,Long toConsumerId, Boolean isFavorite, String name, String profileImageUrl) {
         this.id = id;
-        this.consumerId = consumerId;
-        this.favorite = favorite;
-        this.profileNickname = profileNickname;
-        this.profileThumbnailImage = profileThumbnailImage;
+        this.toConsumerId = toConsumerId;
+        this.isFavorite = isFavorite;
+        this.name = name;
+        this.profileImageUrl = profileImageUrl;
     }
 
-    public static FriendDto from(Friend friend, String profileNickname, String profileThumbnailImage) {
+    public static FriendDto from(Friend friend, String name, String profileImageUrl) {
         return FriendDto.builder()
-                .consumerId(friend.getToConsumerId())
-                .favorite(friend.getIsFavorite())
-                .profileNickname(profileNickname)
-                .profileThumbnailImage(profileThumbnailImage)
+                .toConsumerId(friend.getToConsumer().getId())
+                .isFavorite(friend.getIsFavorite())
+                .name(name)
+                .profileImageUrl(profileImageUrl)
                 .build();
     }
 
-    public static FriendDto from(Friend friend, Consumer consumer) {
+    public static FriendDto from(Friend friend, Consumer toConsumer) {
         return FriendDto.builder()
-                .consumerId(friend.getToConsumerId())
-                .favorite(friend.getIsFavorite())
-                .profileNickname(consumer != null ? consumer.getName() : "탈퇴한 회원")
-                .profileThumbnailImage(consumer != null ? consumer.getProfileImageUrl() : null)
+                .id(friend.getId())
+                .isFavorite(friend.getIsFavorite())
+                .toConsumerId(toConsumer.getId())
+                .name(toConsumer.getName())
+                .profileImageUrl(toConsumer.getProfileImageUrl())
                 .build();
     }
-
 }
-
-

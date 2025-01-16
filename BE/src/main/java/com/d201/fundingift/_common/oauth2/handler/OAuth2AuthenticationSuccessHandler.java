@@ -116,7 +116,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
                 redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
 
                 // 친구 추가 실행 (동의 있을 때만 없을 때 예외처리)
-                friendService.getKakaoFriendsByConsumerId(consumerId);
+                friendService.synchronizeFriends(consumerId);
                 log.info("friendService.getKakaoFriendsByConsumerId {}",consumerId);
                 // 회원가입 페이지로 리다이렉트
                 return UriComponentsBuilder.fromUriString(targetUrl)
@@ -182,9 +182,6 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             } catch (Exception e) {
                 log.error("Error deleting Kakao access token for consumerId: {}: {}", consumerId, e.getMessage());
             }
-
-            // 친구 목록 전부 삭제
-            friendService.deleteAllFriendsByConsumerId(consumerId);
 
             log.info("Completed unlink process for consumerId: {}", consumerId);
 
