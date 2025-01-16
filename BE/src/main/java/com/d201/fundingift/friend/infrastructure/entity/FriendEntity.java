@@ -43,6 +43,7 @@ public class FriendEntity extends BaseTime {
     // Friend 엔티티 내에 추가
     public static FriendEntity from(Friend friend) {
         return FriendEntity.builder()
+                .id(friend.getId())
                 .consumer(friend.getConsumer())
                 .toConsumer(friend.getToConsumer())
                 .isFavorite(friend.getIsFavorite())

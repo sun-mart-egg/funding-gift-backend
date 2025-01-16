@@ -7,9 +7,9 @@ import lombok.Getter;
 @Getter
 public class Friend {
 
-    private Long id;
-    private Consumer consumer; // 소비자
-    private Consumer toConsumer; // 소비자 친구의 소비자
+    private final Long id;
+    private final Consumer consumer; // 소비자
+    private final Consumer toConsumer; // 소비자 친구의 소비자
     private Boolean isFavorite;
 
     @Builder
