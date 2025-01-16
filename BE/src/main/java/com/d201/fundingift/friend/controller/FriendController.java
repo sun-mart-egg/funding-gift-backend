@@ -60,7 +60,7 @@ public class FriendController {
         return ResponseUtils.ok(friendsResponse, SuccessType.GET_FRIEND_INFO_SUCCESS);
     }
 
-    @Operation(summary = "친한경 친구 설정 변경",
+    @Operation(summary = "친한친구 설정 변경",
             description = "해당 친구와의 친한친구 관계를 토글합니다. `Token`"
     )
     @PutMapping("/{to-consumer-id}/toggle-favorite")
