@@ -127,6 +127,16 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             } else {
                 // 가입 된 상태일 경우 -> 로그인
                 Long consumerId = findMember.get().getId();
+                Consumer consumer = findMember.get();
+
+                // **프로필 URL 업데이트 로직**
+                String currentProfileUrl = principal.getUserInfo().getProfileImageUrl();
+                if (!currentProfileUrl.equals(consumer.getProfileImageUrl())) {
+                    log.info("프로필 URL 변경 감지: consumerId={}, oldUrl={}, newUrl={}",
+                            consumerId, consumer.getProfileImageUrl(), currentProfileUrl);
+
+                    consumerService.updateProfileImage(consumerId, currentProfileUrl); // URL 업데이트 메서드 호출
+                }
 
                 // Access, Refresh 토큰 생성.
                 String accessToken = jwtUtil.createAccessToken(consumerId.toString());
