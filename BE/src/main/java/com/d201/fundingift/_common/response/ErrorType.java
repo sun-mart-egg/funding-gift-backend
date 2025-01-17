@@ -34,7 +34,6 @@ public enum ErrorType {
     FRIEND_NOT_FOUND(HttpStatus.BAD_REQUEST, "내 친구가 아닙니다."),
     FRIEND_NOT_IS_FAVORITE(HttpStatus.BAD_REQUEST, "친한 친구가 아닙니다."),
     KAKAO_FRIEND_NOT_FOUND(HttpStatus.BAD_REQUEST, "카카오 친구목록 조회에 실패하였습니다."),
-    FRIEND_RELATIONSHIP_NOT_FOUND(HttpStatus.NOT_FOUND, "친구 관계를 찾을 수 없습니다"),
     FRIEND_RELATIONSHIP_DELETE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "친구 관계 삭제 중 오류 발생"),
 
     // 펀딩
