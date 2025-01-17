@@ -49,6 +49,10 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final FriendService friendService;
     private final RedisJwtRepository redisJwtRepository;
 
+    /**
+     * OAuth2 인증 성공 시 호출되는 메서드
+     * 인증 성공 후 리다이렉트할 URL을 결정하고, 리다이렉트 처리
+     */
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
@@ -67,157 +71,48 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
 
     }
 
+    /**
+     * 리다이렉트할 URL을 결정하는 메서드
+     * 프론트엔드에서 전달받은 mode 값에 따라 로그인, 회원가입, 회원탈퇴를 처리
+     */
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) {
+        // 기본 리다이렉트 URL 설정
+        String targetUrl = CookieUtils.getCookie(request, REDIRECT_URI_PARAM_COOKIE_NAME)
+                .map(Cookie::getValue)
+                .orElse(getDefaultTargetUrl());
 
-        Optional<String> redirectUri = CookieUtils.getCookie(request, REDIRECT_URI_PARAM_COOKIE_NAME)
-                .map(Cookie::getValue);
-
-        String targetUrl = redirectUri.orElse(getDefaultTargetUrl());
-
+        // mode 파라미터 가져오기 (login, unlink 등)
         String mode = CookieUtils.getCookie(request, MODE_PARAM_COOKIE_NAME)
                 .map(Cookie::getValue)
                 .orElse("");
 
+        // 인증 정보에서 사용자 정보 추출
         OAuth2UserPrincipal principal = getOAuth2UserPrincipal(authentication);
-
         if(principal == null) {
             return UriComponentsBuilder.fromUriString(targetUrl)
                     .queryParam("error", "Login failed")
                     .build().toUriString();
         }
 
-        String socialId = principal.getUserInfo().getId();
-        Optional<Consumer> findMember = consumerService.findBySocialId(socialId) ;
-
-        // 로그인 버튼 눌렀을 시
-        if ("login".equalsIgnoreCase(mode)) {
-            log.info("email={}, name={}, nickname={}, profileUrl={}, accessToken={}",
-                    principal.getUserInfo().getEmail(),
-                    principal.getUserInfo().getName(),
-                    principal.getUserInfo().getNickname(),
-                    principal.getUserInfo().getProfileImageUrl(),
-                    principal.getUserInfo().getAccessToken()
-            );
-
-            // DB에 회원정보가 없을 경우 -> 회원등록
-            if(findMember.isEmpty()){
-                Long consumerId = consumerService.saveOAuth2User(principal);
-
-                // Access, Refresh 토큰 생성.
-                String accessToken = jwtUtil.createAccessToken(consumerId.toString());
-                String refreshToken = jwtUtil.createRefreshToken(consumerId.toString());
-
-                // Redis 에 Access, Refresh 토큰 저장.
-                redisJwtRepository.saveAccessToken(consumerId,accessToken);
-                redisJwtRepository.saveRefreshToken(consumerId,refreshToken);
-
-                // Redis 에 kakaoAccess 토큰 저장.
-                redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
-
-                // 친구 추가 실행 (동의 있을 때만 없을 때 예외처리)
-                friendService.getKakaoFriendsByConsumerId(consumerId);
-                log.info("friendService.getKakaoFriendsByConsumerId {}",consumerId);
-                // 회원가입 페이지로 리다이렉트
+        // mode에 따라 로그인, 회원가입 또는 회원탈퇴 처리
+        switch (mode.toLowerCase()) {
+            case "login":
+                return consumerService.handleLoginOrRegister(principal, targetUrl);
+            case "unlink":
+                return consumerService.handleUnlink(principal, targetUrl);
+            default:
                 return UriComponentsBuilder.fromUriString(targetUrl)
-                        .queryParam("access-token", accessToken)
-                        .queryParam("consumer-id",consumerId)
-                        .queryParam("next-page","sign-up")
+                        .queryParam("error", "Unsupported mode")
                         .build().toUriString();
-            } else {
-                // 가입 된 상태일 경우 -> 로그인
-                Long consumerId = findMember.get().getId();
-                Consumer consumer = findMember.get();
-
-                // **프로필 URL 업데이트 로직**
-                String currentProfileUrl = principal.getUserInfo().getProfileImageUrl();
-                if (!currentProfileUrl.equals(consumer.getProfileImageUrl())) {
-                    log.info("프로필 URL 변경 감지: consumerId={}, oldUrl={}, newUrl={}",
-                            consumerId, consumer.getProfileImageUrl(), currentProfileUrl);
-
-                    consumerService.updateProfileImage(consumerId, currentProfileUrl); // URL 업데이트 메서드 호출
-                }
-
-                // Access, Refresh 토큰 생성.
-                String accessToken = jwtUtil.createAccessToken(consumerId.toString());
-
-                // Redis 에 Access 토큰 저장.
-                redisJwtRepository.saveAccessToken(consumerId,accessToken);
-
-                // Redis 에 카카오 액세스 토큰 저장.
-                redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
-
-                // 메인 페이지로 리다이렉트
-                return UriComponentsBuilder.fromUriString(targetUrl)
-                        .queryParam("access-token", accessToken)
-                        .queryParam("consumer-id",findMember.get().getId())
-                        .queryParam("next-page","main")
-                        .build().toUriString();
-            }
-
-
-        } else if ("unlink".equalsIgnoreCase(mode)) {
-            // 회원 탈퇴
-            String accessToken = principal.getUserInfo().getAccessToken();
-            OAuth2Provider provider = principal.getUserInfo().getProvider();
-            Long consumerId = findMember.get().getId();
-
-            log.info("회원 탈퇴 시도, 사용자 ID: {}", consumerId);
-
-            try {
-                oAuth2UserUnlinkManager.unlink(provider, accessToken);
-                log.info("Unlinked OAuth2 user for consumerId: {}", consumerId);
-            } catch (Exception e) {
-                log.error("Error unlinking OAuth2 user for consumerId: {}: {}", consumerId, e.getMessage());
-                // Handle the error appropriately
-            }
-
-            try {
-                redisJwtRepository.deleteAccessToken(consumerId);
-                log.info("Deleted access token for consumerId: {}", consumerId);
-            } catch (Exception e) {
-                log.error("Error deleting access token for consumerId: {}: {}", consumerId, e.getMessage());
-            }
-
-            try {
-                redisJwtRepository.deleteRefreshToken(consumerId);
-                log.info("Deleted refresh token for consumerId: {}", consumerId);
-            } catch (Exception e) {
-                log.error("Error deleting refresh token for consumerId: {}: {}", consumerId, e.getMessage());
-            }
-
-            try {
-                redisJwtRepository.deleteKakaoAccessToken(consumerId);
-                log.info("Deleted Kakao access token for consumerId: {}", consumerId);
-            } catch (Exception e) {
-                log.error("Error deleting Kakao access token for consumerId: {}: {}", consumerId, e.getMessage());
-            }
-
-            // 친구 목록 전부 삭제
-            friendService.deleteAllFriendsByConsumerId(consumerId);
-            log.info("Deleted all friends for consumerId: {}", consumerId);
-
-            // 4. Consumer 논리 삭제
-            try {
-                consumerService.withdrawConsumer(consumerId); // Consumer 논리 삭제 메서드 호출
-                log.info("Consumer has been logically deleted: {}", consumerId);
-            } catch (Exception e) {
-                log.error("Error logically deleting consumer for consumerId: {}: {}", consumerId, e.getMessage());
-            }
-
-            log.info("Completed unlink process for consumerId: {}", consumerId);
-
-            return UriComponentsBuilder.fromUriString(targetUrl)
-                    .build().toUriString();
         }
-
-
-        return UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("error", "Login failed")
-                .build().toUriString();
-
     }
 
+    /**
+     * OAuth2 인증 정보를 추출하는 메서드
+     * @param authentication 인증 객체
+     * @return OAuth2 사용자 정보 객체
+     */
     private OAuth2UserPrincipal getOAuth2UserPrincipal(Authentication authentication) {
 
         Object principal = authentication.getPrincipal();
@@ -229,6 +124,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         return null;
     }
 
+    /**
+     * 인증 관련 쿠키 정보를 제거하는 메서드
+     */
     protected void clearAuthenticationAttributes(HttpServletRequest request, HttpServletResponse response) {
 
         super.clearAuthenticationAttributes(request);
