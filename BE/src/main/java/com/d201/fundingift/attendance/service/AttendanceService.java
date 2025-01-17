@@ -13,8 +13,8 @@ import com.d201.fundingift.attendance.dto.response.PostAttendanceResponse;
 import com.d201.fundingift.attendance.entity.Attendance;
 import com.d201.fundingift.attendance.repository.AttendanceRepository;
 import com.d201.fundingift.consumer.entity.Consumer;
-import com.d201.fundingift.friend.entity.Friend;
-import com.d201.fundingift.friend.repository.FriendRepository;
+import com.d201.fundingift.friend.domain.Friend;
+import com.d201.fundingift.friend.domain.port.FriendRepository;
 import com.d201.fundingift.funding.entity.Funding;
 import com.d201.fundingift.funding.repository.FundingRepository;
 import com.d201.fundingift._common.dto.FcmNotificationDto;
@@ -173,7 +173,7 @@ public class AttendanceService {
     }
 
     private void checkingFriend(Long consumerId, Long toConsumerId) {
-        friendRepository.findById(consumerId + ":" + toConsumerId)
+        friendRepository.findByConsumerIdAndToConsumerId(consumerId, toConsumerId)
                 .orElseThrow(() -> new CustomException(ErrorType.FRIEND_NOT_FOUND));
     }
 
@@ -210,13 +210,13 @@ public class AttendanceService {
     }
 
     private boolean checkingMyFriend(Long myConsumerId, Long fundingConsumerId) {
-        if(friendRepository.findById(myConsumerId + ":" + fundingConsumerId).isEmpty())
+        if(friendRepository.findByConsumerIdAndToConsumerId(myConsumerId, fundingConsumerId).isEmpty())
             return false;
         return true;
     }
 
     private boolean checkingIsFavoriteFriend(Long fundingConsumerId, Long myConsumerId) {
-        Optional<Friend> friend = friendRepository.findById(fundingConsumerId + ":" + myConsumerId);
+        Optional<Friend> friend = friendRepository.findByConsumerIdAndToConsumerId(fundingConsumerId, myConsumerId);
 
         //보려는 펀딩 목록의 대상에 본인이 친구가 아니거나 친한 친구가 아닌 경우 -> false
         return friend.isPresent() && friend.get().getIsFavorite();

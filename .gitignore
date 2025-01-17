@@ -43,7 +43,7 @@ out/
 **/._.DS_Store
 
 ### firebase secret-key ###
-src/main/resources/fcm-certification.json
+fcm-certification.json
 
 ### yml file ###
 application-*.yml

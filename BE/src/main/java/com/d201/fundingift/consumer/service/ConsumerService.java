@@ -139,7 +139,7 @@ public class ConsumerService {
         redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
 
         // 친구 목록 가져오기
-        friendService.getKakaoFriendsByConsumerId(consumerId);
+        // ?
 
         // 리다이렉션 URL 생성
         return UriComponentsBuilder.fromUriString(targetUrl)
@@ -220,9 +220,6 @@ public class ConsumerService {
         redisJwtRepository.deleteAccessToken(consumerId);
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
-
-        // 친구 데이터 삭제
-        friendService.deleteAllFriendsByConsumerId(consumerId);
 
         // 사용자 논리 삭제
         withdrawConsumer(consumerId);

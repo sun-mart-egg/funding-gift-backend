@@ -21,7 +21,7 @@ public class FundingSchedulerService {
     private final FundingRepository fundingRepository;
 
     @Transactional
-//    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
     @Scheduled(cron = "0 8 2 * * ?", zone = "Asia/Seoul") //테스트용
     public void updateFundingStatusInProgress() {
         log.info("start updateFundingStatusInProgress");
@@ -32,8 +32,8 @@ public class FundingSchedulerService {
     }
 
     @Transactional
-//    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
-    @Scheduled(cron = "0 48 2 * * ?", zone = "Asia/Seoul") //테스트용
+    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
+//    @Scheduled(cron = "0 48 2 * * ?", zone = "Asia/Seoul") //테스트용
     public void updateFundingStatusSuccessOrFail() {
         log.info("start updateFundingStatusSuccessOrFail");
         List<Funding> fundings = fundingRepository.findAllByFundingStatusAndEndDateAndDateAndDeletedAtIsNull(FundingStatus.IN_PROGRESS, LocalDate.now().minusDays(1));

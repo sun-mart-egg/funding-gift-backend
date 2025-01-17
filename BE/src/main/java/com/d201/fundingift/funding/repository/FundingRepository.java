@@ -68,7 +68,7 @@ public interface FundingRepository extends JpaRepository<Funding, Long> {
     @Query("select f from Funding f where f.fundingStatus = :fundingStatus and f.startDate = :date and f.deletedAt IS NULL")
     List<Funding> findAllByFundingStatusAndStartDateAndDeletedAtIsNull(@Param("fundingStatus")FundingStatus fundingStatus, @Param("date") LocalDate date);
 
-    @Query("select f from Funding f where f.fundingStatus = :fundingStatus and f.startDate = :date and f.deletedAt IS NULL")
+    @Query("select f from Funding f where f.fundingStatus = :fundingStatus and f.endDate = :date and f.deletedAt IS NULL")
     List<Funding> findAllByFundingStatusAndEndDateAndDateAndDeletedAtIsNull(@Param("fundingStatus")FundingStatus fundingStatus, @Param("date") LocalDate date);
 
 }

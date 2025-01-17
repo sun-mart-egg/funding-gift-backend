@@ -102,6 +102,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
             case "unlink":
                 return consumerService.handleUnlink(principal, targetUrl);
             default:
+
                 return UriComponentsBuilder.fromUriString(targetUrl)
                         .queryParam("error", "Unsupported mode")
                         .build().toUriString();
