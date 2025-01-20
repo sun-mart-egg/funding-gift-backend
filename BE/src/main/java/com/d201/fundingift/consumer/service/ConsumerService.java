@@ -1,8 +1,11 @@
 package com.d201.fundingift.consumer.service;
 
 import com.d201.fundingift._common.exception.CustomException;
+import com.d201.fundingift._common.jwt.JwtUtil;
 import com.d201.fundingift._common.jwt.RedisJwtRepository;
 import com.d201.fundingift._common.oauth2.service.OAuth2UserPrincipal;
+import com.d201.fundingift._common.oauth2.user.OAuth2Provider;
+import com.d201.fundingift._common.oauth2.user.OAuth2UserUnlinkManager;
 import com.d201.fundingift._common.response.ErrorType;
 import com.d201.fundingift._common.util.SecurityUtil;
 import com.d201.fundingift.attendance.entity.Attendance;
@@ -12,6 +15,7 @@ import com.d201.fundingift.consumer.dto.response.GetConsumerInfoByIdResponse;
 import com.d201.fundingift.consumer.dto.response.GetConsumerMyInfoResponse;
 import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.consumer.repository.ConsumerRepository;
+import com.d201.fundingift.friend.service.FriendService;
 import com.d201.fundingift.funding.entity.Funding;
 import com.d201.fundingift.funding.entity.status.FundingStatus;
 import com.d201.fundingift.funding.repository.FundingRepository;
@@ -25,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +48,9 @@ public class ConsumerService {
     private final AttendanceRepository attendanceRepository;
     private final SecurityUtil securityUtil;
     private final RestTemplate restTemplate;
+    private final FriendService friendService;
+    private final JwtUtil jwtUtil;
+    private final OAuth2UserUnlinkManager oAuth2UserUnlinkManager;
 
 
     // 회원가입
@@ -98,6 +106,76 @@ public class ConsumerService {
                 .orElseThrow((() -> new CustomException(USER_NOT_FOUND))));
     }
 
+    /**
+     * 로그인 또는 회원가입 처리
+     * - 회원 정보가 존재하지 않으면 회원가입 처리
+     * - 존재하면 로그인 처리
+     */
+    public String handleLoginOrRegister(OAuth2UserPrincipal principal, String targetUrl) {
+        String socialId = principal.getUserInfo().getId();
+        Optional<Consumer> consumerOptional = findBySocialId(socialId);
+
+        if (consumerOptional.isEmpty()) {
+            // 회원가입 처리
+            return registerUser(principal, targetUrl);
+        } else {
+            // 로그인 처리
+            return loginUser(principal, consumerOptional.get(), targetUrl);
+        }
+    }
+
+    /**
+     * 회원가입 처리 로직
+     */
+    private String registerUser(OAuth2UserPrincipal principal, String targetUrl) {
+        Long consumerId = saveOAuth2User(principal);
+        log.info("회원가입 완료: consumerId={}", consumerId);
+
+        // 토큰 생성 및 저장
+        String accessToken = jwtUtil.createAccessToken(consumerId.toString());
+        String refreshToken = jwtUtil.createRefreshToken(consumerId.toString());
+        redisJwtRepository.saveAccessToken(consumerId, accessToken);
+        redisJwtRepository.saveRefreshToken(consumerId, refreshToken);
+        redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
+
+        // 친구 목록 가져오기
+        friendService.synchronizeFriends(consumerId);
+
+        // 리다이렉션 URL 생성
+        return UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("access-token", accessToken)
+                .queryParam("consumer-id", consumerId)
+                .queryParam("next-page", "sign-up")
+                .build().toUriString();
+    }
+
+    /**
+     * 로그인 처리 로직
+     */
+    private String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl) {
+        Long consumerId = consumer.getId();
+
+        // 프로필 업데이트
+        updateProfileIfChanged(consumer, principal);
+
+        // 토큰 생성 및 저장
+        String accessToken = jwtUtil.createAccessToken(consumerId.toString());
+        redisJwtRepository.saveAccessToken(consumerId, accessToken);
+        redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
+
+        log.info("로그인 완료: consumerId={}", consumerId);
+
+        // 리다이렉션 URL 생성
+        return UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("access-token", accessToken)
+                .queryParam("consumer-id", consumerId)
+                .queryParam("next-page", "main")
+                .build().toUriString();
+    }
+
+    /**
+     * 로그아웃 처리 로직
+     */
     public void logoutUser() {
         Long consumerId = Long.valueOf(securityUtil.getConsumer().getId());
         String kakaoAccessToken = redisJwtRepository.getKakaoAccessToken(consumerId);
@@ -121,8 +199,38 @@ public class ConsumerService {
         redisJwtRepository.deleteAccessToken(consumerId);
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
-
     }
+
+    /**
+     * 회원탈퇴 처리 로직
+     */
+    public String handleUnlink(OAuth2UserPrincipal principal, String targetUrl) {
+        String socialId = principal.getUserInfo().getId();
+        String accessToken = principal.getUserInfo().getAccessToken();
+        OAuth2Provider provider = principal.getUserInfo().getProvider();
+        Consumer consumer = findBySocialId(socialId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+        Long consumerId = consumer.getId();
+        log.info("회원탈퇴 시도: consumerId={}", consumerId);
+
+        // OAuth2 서비스 연결 해제
+        oAuth2UserUnlinkManager.unlink(provider, accessToken);
+
+        // Redis 토큰 삭제
+        redisJwtRepository.deleteAccessToken(consumerId);
+        redisJwtRepository.deleteRefreshToken(consumerId);
+        redisJwtRepository.deleteKakaoAccessToken(consumerId);
+
+        // 사용자 논리 삭제
+        withdrawConsumer(consumerId);
+
+        log.info("회원탈퇴 완료: consumerId={}", consumerId);
+
+        return UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("next-page", "logout")
+                .build().toUriString();
+    }
+
     @Transactional
     public void updateConsumerInfo(PutConsumerInfoRequestDto putConsumerInfoRequestDto) {
         Long consumerId = Long.valueOf(securityUtil.getConsumer().getId());
@@ -132,12 +240,16 @@ public class ConsumerService {
         consumer.updateInfo(putConsumerInfoRequestDto);
     }
 
-    @Transactional
-    public void updateProfileImage(Long consumerId, String newProfileImageUrl) {
-        Consumer consumer = consumerRepository.findById(consumerId)
-                .orElseThrow(() -> new CustomException(CONSUMER_NOT_FOUND));
-
-        consumer.updateProfileImageUrl(newProfileImageUrl);
+    /**
+     * 프로필 업데이트 메서드
+     */
+    private void updateProfileIfChanged(Consumer consumer, OAuth2UserPrincipal principal) {
+        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
+        if (!newProfileUrl.equals(consumer.getProfileImageUrl())) {
+            consumer.updateProfileImageUrl(newProfileUrl);
+            consumerRepository.save(consumer);
+            log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+        }
     }
 
     public Boolean isConsumerInProgressOrAttendanceFunding() {
