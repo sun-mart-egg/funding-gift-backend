@@ -139,7 +139,7 @@ public class ConsumerService {
         redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
 
         // 친구 목록 가져오기
-        // ?
+        friendService.synchronizeFriends(consumerId);
 
         // 리다이렉션 URL 생성
         return UriComponentsBuilder.fromUriString(targetUrl)
