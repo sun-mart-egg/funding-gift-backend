@@ -119,7 +119,7 @@ public class FundingController {
             description = """
                            `token` \n
                            친구가 만든 펀딩 목록을 볼 수 있습니다. \n
-                           친구 아이디 friendEntity-consumer-id에 필수로 넣어야 합니다. \n
+                           친구 아이디 friend-consumer-id에 필수로 넣어야 합니다. \n
                            제품명 keyword에 넣으면 검색 가능합니다. \n
                            """)
     @ApiResponses(value = {
@@ -132,10 +132,10 @@ public class FundingController {
                             schema = @Schema(implementation = ErrorResponse.class)
                     ))
     })
-    @GetMapping("/friendEntity-fundings")
+    @GetMapping("/friend-fundings")
     public SuccessResponse<SliceList<GetFundingResponse>> getFriendFundings(
                                                                         @Schema(description = "친구 아이디", example = "43")
-                                                                        @RequestParam(required = true, name = "friendEntity-consumer-id") Long friendConsumerId,
+                                                                        @RequestParam(required = true, name = "friend-consumer-id") Long friendConsumerId,
                                                                         @Schema(description = "제품명으로 펀딩 목록 조회", example = "귀걸이")
                                                                         @RequestParam(required = false, name = "keyword") String keyword,
                                                                         @PageableDefault(size=3, sort="createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
