@@ -23,13 +23,9 @@ import java.util.Date;
 @RequiredArgsConstructor
 @Component
 public class JwtUtil {
-
-    //private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 30; // 30min
-    private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 3000; // 3000분
+    private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 30; // 30분
     private static final long REFRESH_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 60 * 24 * 7; // 7일
-//    private final RedisTemplate redisTemplate;
 
-    
     @Value("${jwt.secret}")
     private String secret;
     private Key key;
@@ -40,43 +36,7 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(key);
     }
 
-    public boolean validateAccessToken(String token) {
-
-        try {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token);
-
-            return true;
-        } catch (UnsupportedJwtException | MalformedJwtException exception) {
-            log.error("JWT is not valid");
-        } catch (SignatureException exception) {
-            log.error("JWT signature validation fails");
-        } catch (ExpiredJwtException exception) {
-            log.error("JWT is expired");
-        } catch (IllegalArgumentException exception) {
-            log.error("JWT is null or empty or only whitespace");
-        } catch (Exception exception) {
-            log.error("JWT validation fails", exception);
-        }
-
-        return false;
-    }
-
-    public boolean validateRefreshToken(String refreshToken) {
-        // 리프레시 토큰의 유효성 검증 로직
-        try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(refreshToken);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            log.error("Invalid Refresh Token.", e);
-            return false;
-        }
-    }
-
     public String createAccessToken(String consumerId) {
-
         Date date = new Date();
         Date expiryDate = new Date(date.getTime() + ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS);
 
@@ -100,29 +60,60 @@ public class JwtUtil {
                 .compact();
     }
 
-    public Authentication getAuthentication(String token) {
-        Claims claims = Jwts.parserBuilder()
+    /**
+     * JWT를 파싱하여 Claims 반환
+     */
+    public Claims parseToken(String token) {
+        return Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
 
+    public boolean validateAccessToken(String token) {
+        try {
+            Jwts.parserBuilder()
+                    .setSigningKey(key)
+                    .build()
+                    .parseClaimsJws(token);
+
+            return true;
+        } catch (UnsupportedJwtException | MalformedJwtException exception) {
+            log.error("JWT is not valid");
+        } catch (SignatureException exception) {
+            log.error("JWT signature validation fails");
+        } catch (ExpiredJwtException exception) {
+            log.error("JWT is expired");
+        } catch (IllegalArgumentException exception) {
+            log.error("JWT is null or empty or only whitespace");
+        } catch (Exception exception) {
+            log.error("JWT validation fails", exception);
+        }
+
+        return false;
+    }
+
+    public boolean validateRefreshToken(String refreshToken) {
+        try {
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(refreshToken);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            log.error("Invalid Refresh Token.", e);
+            return false;
+        }
+    }
+
+    public Authentication getAuthentication(String token) {
+        Claims claims = parseToken(token);
         UserDetails user = new User(claims.getSubject(), "", Collections.emptyList());
 
         return new UsernamePasswordAuthenticationToken(user, "", Collections.emptyList());
     }
 
-    // 토큰으로 부터 consumerID 추출.
-    public String extractUserId(Authentication authentication) {
-        if (authentication != null && authentication.isAuthenticated()) {
-            return authentication.getName();
-        }
-        return null;
-    }
-
     public boolean isTokenExpired(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            parseToken(token);
             return false;
         } catch (ExpiredJwtException e) {
             return true;
@@ -135,12 +126,7 @@ public class JwtUtil {
     public String extractUserIdFromExpiredToken(String token) {
         try {
             // 만료된 토큰에서도 claim을 추출할 수 있습니다.
-            Claims claims = Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token)
-                    .getBody();
-            return claims.getSubject();
+            return parseToken(token).getSubject();
         } catch (ExpiredJwtException e) {
             // 만료된 토큰에서는 여전히 claim을 추출할 수 있습니다.
             return e.getClaims().getSubject();

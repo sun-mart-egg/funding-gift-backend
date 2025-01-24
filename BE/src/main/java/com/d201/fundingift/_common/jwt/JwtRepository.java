@@ -6,7 +6,7 @@ public interface JwtRepository {
     void saveKakaoAccessToken(Long consumerId, String kakaoAccessToken);
 
     String getAccessToken(Long consumerId);
-    String getRefreshToken(Long consumerId);
+    String getRefreshToken(String consumerId);
     String getKakaoAccessToken(Long consumerId);
 
     void deleteAccessToken(Long consumerId);

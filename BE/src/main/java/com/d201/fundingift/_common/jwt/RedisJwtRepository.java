@@ -1,16 +1,20 @@
 package com.d201.fundingift._common.jwt;
 
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class RedisJwtRepository implements JwtRepository {
 
     private final StringRedisTemplate redisTemplate;
-
+    private final JwtUtil jwtUtil;
     @Override
     public void saveAccessToken(Long consumerId, String accessToken) {
         redisTemplate.opsForValue().set("accessToken:" + consumerId, accessToken);
@@ -18,7 +22,11 @@ public class RedisJwtRepository implements JwtRepository {
 
     @Override
     public void saveRefreshToken(Long consumerId, String refreshToken) {
-        redisTemplate.opsForValue().set("refreshToken:" + consumerId, refreshToken);
+        Claims claims = jwtUtil.parseToken(refreshToken);
+        Date expiration = claims.getExpiration(); // JWT의 만료 시간 가져오기
+        long duration = expiration.getTime() - System.currentTimeMillis(); // 남은 시간 계산
+
+        redisTemplate.opsForValue().set("refreshToken:" + consumerId, refreshToken, duration,  TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -28,17 +36,17 @@ public class RedisJwtRepository implements JwtRepository {
 
     @Override
     public String getAccessToken(Long consumerId) {
-        return (String) redisTemplate.opsForValue().get("accessToken:" + consumerId);
+        return redisTemplate.opsForValue().get("accessToken:" + consumerId);
     }
 
     @Override
-    public String getRefreshToken(Long consumerId) {
-        return (String) redisTemplate.opsForValue().get("refreshToken:" + consumerId);
+    public String getRefreshToken(String consumerId) {
+        return redisTemplate.opsForValue().get("refreshToken:" + consumerId);
     }
 
     @Override
     public String getKakaoAccessToken(Long consumerId) {
-        return (String) redisTemplate.opsForValue().get("kakaoAccessToken:" + consumerId);
+        return redisTemplate.opsForValue().get("kakaoAccessToken:" + consumerId);
     }
 
     @Override
