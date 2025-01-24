@@ -1,10 +1,8 @@
-package com.d201.fundingift.funding.entity;
+package com.d201.fundingift.funding.intrastructure.entity;
 
 import com.d201.fundingift._common.entity.BaseTime;
-import com.d201.fundingift.attendance.entity.Attendance;
 import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.funding.dto.request.PostFundingRequest;
-import com.d201.fundingift.funding.entity.status.FundingStatus;
 import com.d201.fundingift.product.entity.Product;
 import com.d201.fundingift.product.entity.ProductOption;
 import jakarta.persistence.*;
@@ -15,16 +13,14 @@ import org.hibernate.annotations.SQLDelete;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
 
-@Entity
+@Entity(name = "funding")
 @Getter
 @ToString
 @DynamicInsert
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE funding set deleted_at = DATE_ADD(NOW(), INTERVAL 9 HOUR) where funding_id = ?")
-public class Funding extends BaseTime {
+public class FundingEntity extends BaseTime {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -77,10 +73,9 @@ public class Funding extends BaseTime {
     @Column(nullable = false, length = 10)
     private String zipCode;
 
-    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @ColumnDefault("'PRE_PROGRESS'")
-    private FundingStatus fundingStatus;
+    private String fundingStatus;
 
     @Column(nullable = false)
     @ColumnDefault("false")
@@ -102,11 +97,9 @@ public class Funding extends BaseTime {
     @JoinColumn(name = "product_option_id", referencedColumnName = "product_option_id")
     private ProductOption productOption;
 
-    @OneToMany(mappedBy = "funding", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Attendance> attendances = new ArrayList<>();
-
     @Builder
-    private Funding(Integer sumPrice, Integer minPrice, Integer targetPrice, LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate, String title, String content, String accountBank, String accountNo, String name, String phoneNumber, String defaultAddr, String detailAddr, String zipCode, FundingStatus fundingStatus, Boolean isPrivate, Consumer consumer, AnniversaryCategory anniversaryCategory, Product product, ProductOption productOption, List<Attendance> attendances) {
+    private FundingEntity(Long id, Integer sumPrice, Integer minPrice, Integer targetPrice, LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate, String title, String content, String accountBank, String accountNo, String name, String phoneNumber, String defaultAddr, String detailAddr, String zipCode, String fundingStatus, Boolean isPrivate, Consumer consumer, AnniversaryCategory anniversaryCategory, Product product, ProductOption productOption) {
+        this.id = id;
         this.sumPrice = sumPrice;
         this.minPrice = minPrice;
         this.targetPrice = targetPrice;
@@ -128,12 +121,11 @@ public class Funding extends BaseTime {
         this.anniversaryCategory = anniversaryCategory;
         this.product = product;
         this.productOption = productOption;
-        this.attendances = attendances;
     }
 
-    public static Funding from(PostFundingRequest postFundingRequest, String fundingStatus
+    public static FundingEntity from(PostFundingRequest postFundingRequest, String fundingStatus
             , Consumer consumer, AnniversaryCategory anniversaryCategory, Product product, ProductOption productOption) {
-        return Funding.builder()
+        return FundingEntity.builder()
                 .minPrice(postFundingRequest.getMinPrice())
                 .targetPrice(postFundingRequest.getTargetPrice())
                 .anniversaryDate(postFundingRequest.getAnniversaryDate())
@@ -148,7 +140,7 @@ public class Funding extends BaseTime {
                 .defaultAddr(postFundingRequest.getDefaultAddr())
                 .detailAddr(postFundingRequest.getDetailAddr())
                 .zipCode(postFundingRequest.getZipCode())
-                .fundingStatus(FundingStatus.valueOf(fundingStatus))
+                .fundingStatus(fundingStatus)
                 .isPrivate(postFundingRequest.getIsPrivate())
                 .consumer(consumer)
                 .anniversaryCategory(anniversaryCategory)
@@ -163,7 +155,7 @@ public class Funding extends BaseTime {
     }
 
     public void changeStatus(String status) {
-        this.fundingStatus = FundingStatus.valueOf(status);
+        this.fundingStatus = status;
     }
 
     public String getAnniversaryDateToString() {
@@ -177,4 +169,8 @@ public class Funding extends BaseTime {
     public String getEndDateToString() {
         return endDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     }
+
+    /**
+     * refactoring
+     */
 }

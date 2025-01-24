@@ -10,28 +10,20 @@ import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.consumer.repository.ConsumerRepository;
 import com.d201.fundingift.friend.domain.Friend;
 import com.d201.fundingift.friend.domain.port.FriendRepository;
+import com.d201.fundingift.funding.domain.status.FundingStatus;
 import com.d201.fundingift.funding.dto.request.DeleteFundingRequest;
-import com.d201.fundingift.funding.dto.request.PostFundingRequest;
 import com.d201.fundingift.funding.dto.response.GetFundingCalendarResponse;
 import com.d201.fundingift.funding.dto.response.GetFundingDetailResponse;
 import com.d201.fundingift.funding.dto.response.GetFundingResponse;
-import com.d201.fundingift.funding.entity.AnniversaryCategory;
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.entity.status.FundingStatus;
-import com.d201.fundingift.funding.repository.AnniversaryCategoryRepository;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import com.d201.fundingift._common.dto.FcmNotificationDto;
-import com.d201.fundingift.product.entity.Product;
-import com.d201.fundingift.product.entity.ProductOption;
-import com.d201.fundingift.product.repository.ProductOptionRepository;
-import com.d201.fundingift.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,60 +32,57 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FundingService {
 
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJPARepository;
     private final AttendanceRepository attendanceRepository;
     private final ConsumerRepository consumerRepository;
     private final FriendRepository friendRepository;
-    private final ProductRepository productRepository;
-    private final ProductOptionRepository productOptionRepository;
-    private final AnniversaryCategoryRepository anniversaryCategoryRepository;
     private final SecurityUtil securityUtil;
     private final FcmNotificationProvider fcmNotificationProvider;
 
-    @Transactional
-    public void postFunding(PostFundingRequest postFundingRequest) {
-        Consumer consumer = getConsumer();
-
-        //상품 없으면 예외
-        Product product = getProduct(postFundingRequest);
-
-        //상품 옵션 없으면 예외
-        ProductOption productOption = getProductOption(postFundingRequest);
-
-        //제품과 제품 옵션이 맞는지 확인
-        checkingProductAndProductOptionIsSame(product, productOption);
-
-        //기념일 카테고리 없으면 예외
-        AnniversaryCategory anniversaryCategory = getAnniversaryCategory(postFundingRequest);
-
-        //시작일이 현재 날짜보다 과거면 예외
-        isStartDatePast(postFundingRequest.getStartDate());
-
-        // 기념일이 시작일보다 과거면 예외
-        isAnniversaryDatePast(postFundingRequest.getAnniversaryDate(), postFundingRequest.getStartDate());
-
-        // 종료일이 기념일 보다 과거이면 예외
-        isEndDatePast(postFundingRequest.getEndDate(), postFundingRequest.getAnniversaryDate());
-
-        //시작일 종료일 7일 넘으면 예외
-        isOver7Days(postFundingRequest.getStartDate(), postFundingRequest.getEndDate());
-
-        //시작일이 오늘이면 IN_PROGRESS로 상태 변경, 미래면 PRE_PROGRESS
-        fundingRepository.save(Funding.from(postFundingRequest, IsStartDateToday(postFundingRequest.getStartDate()), consumer, anniversaryCategory, product, productOption));
-
-        // 알림
-        fcmNotificationProvider.sendToMany(
-                getConsumersByToConsumerIdAndFavorite(consumer.getId()),
-                FcmNotificationDto.of("펀딩 등록 알림", consumer.getName() + "님이 펀딩을 등록했어요!")
-        );
-    }
+//    @Transactional
+//    public void postFunding(PostFundingRequest postFundingRequest) {
+//        Consumer consumer = getConsumer();
+//
+//        //상품 없으면 예외
+//        Product product = getProduct(postFundingRequest);
+//
+//        //상품 옵션 없으면 예외
+//        ProductOption productOption = getProductOption(postFundingRequest);
+//
+//        //제품과 제품 옵션이 맞는지 확인
+//        checkingProductAndProductOptionIsSame(product, productOption);
+//
+//        //기념일 카테고리 없으면 예외
+//        AnniversaryCategory anniversaryCategory = getAnniversaryCategory(postFundingRequest);
+//
+//        //시작일이 현재 날짜보다 과거면 예외
+//        isStartDatePast(postFundingRequest.getStartDate());
+//
+//        // 기념일이 시작일보다 과거면 예외
+//        isAnniversaryDatePast(postFundingRequest.getAnniversaryDate(), postFundingRequest.getStartDate());
+//
+//        // 종료일이 기념일 보다 과거이면 예외
+//        isEndDatePast(postFundingRequest.getEndDate(), postFundingRequest.getAnniversaryDate());
+//
+//        //시작일 종료일 7일 넘으면 예외
+//        isOver7Days(postFundingRequest.getStartDate(), postFundingRequest.getEndDate());
+//
+//        //시작일이 오늘이면 IN_PROGRESS로 상태 변경, 미래면 PRE_PROGRESS
+//        fundingJPARepository.save(Funding.from(postFundingRequest, IsStartDateToday(postFundingRequest.getStartDate()), consumer, anniversaryCategory, product, productOption));
+//
+//        // 알림
+//        fcmNotificationProvider.sendToMany(
+//                getConsumersByToConsumerIdAndFavorite(consumer.getId()),
+//                FcmNotificationDto.of("펀딩 등록 알림", consumer.getName() + "님이 펀딩을 등록했어요!")
+//        );
+//    }
 
     @Transactional
     public void deleteFunding(DeleteFundingRequest deleteFundingRequest) {
         Long myConsumerId = securityUtil.getConsumerId();
 
         //펀딩 존재 확인
-        Funding funding = getFunding(deleteFundingRequest.getFundingId());
+        FundingEntity funding = getFunding(deleteFundingRequest.getFundingId());
 
         //내 펀딩이 맞는지 확인
         if(!Objects.equals(myConsumerId, funding.getConsumer().getId()))
@@ -103,7 +92,7 @@ public class FundingService {
         if(!"PRE_PROGRESS".equals(String.valueOf(funding.getFundingStatus())))
             throw new CustomException(ErrorType.FUNDING_STATUS_NOT_DELETED);
 
-        fundingRepository.delete(funding);
+        fundingJPARepository.delete(funding);
     }
 
     //내 펀딩 목록 보기
@@ -183,7 +172,7 @@ public class FundingService {
     public GetFundingDetailResponse getFundingDetailResponse(Long fundingId) {
         Long myConsumerId = securityUtil.getConsumerId();
 
-        Funding funding = getFunding(fundingId);
+        FundingEntity funding = getFunding(fundingId);
         Long fundingConsumerId = funding.getConsumer().getId();
 
         //내 펀딩인지 확인
@@ -214,7 +203,7 @@ public class FundingService {
             if(checkingIsFavoriteFriend(f.getToConsumer().getId(), myConsumerId)) {
                 //친한 친구로 설정한 경우 isPrivate 상관 없이 모두 조회
                 fundingList.addAll(
-                        fundingRepository
+                        fundingJPARepository
                                 .findAllByConsumerIdAndDeletedAtIsNull(f.getToConsumer().getId(), year, month)
                                 .stream()
                                 .map(GetFundingCalendarResponse::from)
@@ -225,7 +214,7 @@ public class FundingService {
 
             //친한 친구가 아닌경우 IsPrivate == false만 조회
             fundingList.addAll(
-                    fundingRepository
+                    fundingJPARepository
                             .findAllByConsumerIdAndIsPrivateAndDeletedAtIsNull(f.getToConsumer().getId(), year, month)
                             .stream()
                             .map(GetFundingCalendarResponse::from)
@@ -239,41 +228,30 @@ public class FundingService {
     /**
      * 내부 메서드
      */
-    private Funding getFunding(Long fundingId) {
-        return fundingRepository.findByIdAndDeletedAtIsNull(fundingId)
+    private FundingEntity getFunding(Long fundingId) {
+        return fundingJPARepository.findByIdAndDeletedAtIsNull(fundingId)
                 .orElseThrow(() -> new CustomException(ErrorType.FUNDING_NOT_FOUND));
     }
 
-    //제품과 제품 옵션이 맞는지 확인
-    private void checkingProductAndProductOptionIsSame(Product product, ProductOption productOption) {
-
-        for(ProductOption po : product.getProductOptions()) {
-            if(Objects.equals(po.getId(), productOption.getId()))
-                return;
-        }
-
-        throw new CustomException(ErrorType.PRODUCT_OPTION_MISMATCH);
-    }
-
-    private List<GetFundingResponse> getFundingsList(List<Funding> fundings) {
+    private List<GetFundingResponse> getFundingsList(List<FundingEntity> fundings) {
         return fundings.stream().map(GetFundingResponse::from).collect(Collectors.toList());
     }
 
-    private List<Funding> findByConsumerIdAndFundingStatusOrderedByStartDate(Long consumerId) {
-        return fundingRepository.findAllByConsumerIdAndFundingStatusOrderByStartDateAsc(consumerId, FundingStatus.IN_PROGRESS);
+    private List<FundingEntity> findByConsumerIdAndFundingStatusOrderedByStartDate(Long consumerId) {
+        return fundingJPARepository.findAllByConsumerIdAndFundingStatusOrderByStartDateAsc(consumerId, FundingStatus.IN_PROGRESS);
     }
 
-    private List<Funding> findByConsumerIdAndFundingStatusAndIsPrivateOrderByStartDateAsc(Long consumerId) {
-        return fundingRepository.findAllByConsumerIdAndFundingStatusAndIsPrivateOrderByStartDateAsc(consumerId, FundingStatus.IN_PROGRESS, false);
+    private List<FundingEntity> findByConsumerIdAndFundingStatusAndIsPrivateOrderByStartDateAsc(Long consumerId) {
+        return fundingJPARepository.findAllByConsumerIdAndFundingStatusAndIsPrivateOrderByStartDateAsc(consumerId, FundingStatus.IN_PROGRESS, false);
     }
 
     //slice<Funding> -> SliceList<GetFundingResponse> 변경 매서드
-    private SliceList<GetFundingResponse> getFundingsSliceList(Slice<Funding> fundings) {
+    private SliceList<GetFundingResponse> getFundingsSliceList(Slice<FundingEntity> fundings) {
         return SliceList.from(fundings.stream().map(GetFundingResponse::from).collect(Collectors.toList()), fundings.getPageable(), fundings.hasNext());
     }
 
     //slice<Funding> -> SliceList<GetFundingResponse> 변경 매서드
-    private SliceList<GetFundingResponse> getFundingsFeedSliceList(Slice<Funding> fundings, List<Friend> friends) {
+    private SliceList<GetFundingResponse> getFundingsFeedSliceList(Slice<FundingEntity> fundings, List<Friend> friends) {
         Map<Long, Friend> toFriends = new HashMap<>();
 
         for(Friend f : friends) {
@@ -281,8 +259,8 @@ public class FundingService {
             toFriend.ifPresent(friend -> toFriends.put(f.getToConsumer().getId(), friend));
         }
 
-        List<Funding> changed = new ArrayList<>();
-        for(Funding f : fundings) {
+        List<FundingEntity> changed = new ArrayList<>();
+        for(FundingEntity f : fundings) {
             if(!f.getIsPrivate()) {
                 changed.add(f);
                 continue;
@@ -296,36 +274,36 @@ public class FundingService {
     }
 
     //consumerId로 펀딩 목록 찾기
-    private Slice<Funding> findAllByConsumerId(Long consumerId, Pageable pageable) {
-        return fundingRepository.findAllByConsumerIdAndDeletedAtIsNull(consumerId, pageable);
+    private Slice<FundingEntity> findAllByConsumerId(Long consumerId, Pageable pageable) {
+        return fundingJPARepository.findAllByConsumerIdAndDeletedAtIsNull(consumerId, pageable);
     }
 
-    private Slice<Funding> findAllByConsumerRightJoinAttendance(Long consumerId, Pageable pageable) {
+    private Slice<FundingEntity> findAllByConsumerRightJoinAttendance(Long consumerId, Pageable pageable) {
         return attendanceRepository.findAllByConsumerIdAndAndDeletedAtIsNull(consumerId, pageable);
     }
 
     //consumerId, isPrivate == false로 펀딩 목록 찾기
-    private Slice<Funding> findAllByConsumerIdAndIsPrivate(Long consumerId, Pageable pageable) {
-        return fundingRepository.findAllByConsumerIdAndIsPrivateAndDeletedAtIsNull(consumerId, pageable);
+    private Slice<FundingEntity> findAllByConsumerIdAndIsPrivate(Long consumerId, Pageable pageable) {
+        return fundingJPARepository.findAllByConsumerIdAndIsPrivateAndDeletedAtIsNull(consumerId, pageable);
     }
 
     //consumerId, 검색어로 펀딩 목록 찾기
-    private Slice<Funding> findAllByConsumerIdAndProductName(Long consumerId, String keyword, Pageable pageable) {
-        return fundingRepository.findAllByConsumerIdAndProductNameAndDeletedAtIsNull(consumerId, keyword, pageable);
+    private Slice<FundingEntity> findAllByConsumerIdAndProductName(Long consumerId, String keyword, Pageable pageable) {
+        return fundingJPARepository.findAllByConsumerIdAndProductNameAndDeletedAtIsNull(consumerId, keyword, pageable);
     }
 
     //consumerId, isPrivate == false, 검색어로 펀딩 목록 찾기
-    private Slice<Funding> findAllByConsumerIdAndIsPrivateAndProductName(Long consumerId, String keyword, Pageable pageable) {
-        return fundingRepository.findAllByConsumerIdAndIsPrivateAndProductNameAndDeletedAtIsNull(consumerId, keyword, pageable);
+    private Slice<FundingEntity> findAllByConsumerIdAndIsPrivateAndProductName(Long consumerId, String keyword, Pageable pageable) {
+        return fundingJPARepository.findAllByConsumerIdAndIsPrivateAndProductNameAndDeletedAtIsNull(consumerId, keyword, pageable);
     }
 
-    private Slice<Funding> findAllByConsumerIdsAndFundingStatus(List<Friend> friends, Pageable pageable) {
+    private Slice<FundingEntity> findAllByConsumerIdsAndFundingStatus(List<Friend> friends, Pageable pageable) {
         List<Long> friendIds = friends.stream()
                 .map(Friend::getToConsumer)
                 .map(Consumer::getId)
                 .toList();
 
-        return fundingRepository.findAllByConsumerIdsAndFundingStatusAndDeletedAtIsNull(friendIds, pageable);
+        return fundingJPARepository.findAllByConsumerIdsAndFundingStatusAndDeletedAtIsNull(friendIds, pageable);
     }
 
     private void findByConsumerId(Long consumerId){
@@ -349,60 +327,4 @@ public class FundingService {
         friendRepository.findByConsumerIdAndToConsumerId(toConsumerId, consumerId)
                 .orElseThrow(() -> new CustomException(ErrorType.FRIEND_NOT_IS_FAVORITE));
     }
-
-    private AnniversaryCategory getAnniversaryCategory(PostFundingRequest postFundingRequest) {
-        return anniversaryCategoryRepository.findById(postFundingRequest.getAnniversaryCategoryId())
-                .orElseThrow(() -> new CustomException(ErrorType.ANNIVERSARY_CATEGORY_NOT_FOUND));
-    }
-
-    private ProductOption getProductOption(PostFundingRequest postFundingRequest) {
-        return productOptionRepository.findByIdAndStatusIsActive(postFundingRequest.getProductOptionId())
-                .orElseThrow(() -> new CustomException(ErrorType.PRODUCT_OPTION_NOT_FOUND));
-    }
-
-    private Product getProduct(PostFundingRequest postFundingRequest) {
-        return productRepository.findById(postFundingRequest.getProductId())
-                .orElseThrow(() -> new CustomException(ErrorType.PRODUCT_NOT_FOUND));
-    }
-
-    private Consumer getConsumer() {
-        return securityUtil.getConsumer();
-    }
-
-    public void isOver7Days(LocalDate start, LocalDate end) {
-        if (Math.abs(start.until(end).getDays()) > 7)
-            throw new CustomException(ErrorType.FUNDING_DURATION_NOT_VALID);
-    }
-
-    public void isStartDatePast(LocalDate startDate) {
-        if(startDate.isBefore(LocalDate.now()))
-            throw new CustomException(ErrorType.FUNDING_START_DATE_IS_PAST);
-    }
-
-
-    public void isAnniversaryDatePast(LocalDate anniversaryDate, LocalDate startDate) {
-        if(anniversaryDate.isBefore(startDate))
-            throw new CustomException(ErrorType.FUNDING_ANNIVERSARY_DATE_IS_PAST);
-    }
-
-    public void isEndDatePast(LocalDate endDate, LocalDate anniversaryDate) {
-        if(endDate.isBefore(anniversaryDate))
-            throw new CustomException(ErrorType.FUNDING_END_DATE_IS_PAST);
-    }
-
-    public String IsStartDateToday(LocalDate startDate) {
-        if(startDate.equals(LocalDate.now()))
-            return "IN_PROGRESS";
-        return "PRE_PROGRESS";
-    }
-
-    private List<Consumer> getConsumersByToConsumerIdAndFavorite(Long toConsumerId) {
-        List<Long> consumerIds =  friendRepository.findAllByToConsumerIdAndIsFavorite(toConsumerId, true)
-                .stream().map(Friend::getConsumer)
-                .map(Consumer::getId).toList();
-        return consumerIds.stream()
-                .map(id -> consumerRepository.findByIdAndDeletedAtIsNull(id).orElse(null))
-                .collect(Collectors.toList());
-    }
-
 }

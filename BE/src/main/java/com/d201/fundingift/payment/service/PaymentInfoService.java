@@ -68,7 +68,7 @@ public class PaymentInfoService {
 
             PaymentInfo save = paymentInfoRepository.save(PaymentInfo.of(postPaymentInfoRequest.getPaymentInfoUid(), PaymentStatus.PAID, realPrice));
 
-            attendance.getFunding().addSumPrice(price);
+            attendance.getFundingEntity().addSumPrice(price);
             attendance.updatePaymentInfo(save);
             attendance.updateDeletedAt(null);
 

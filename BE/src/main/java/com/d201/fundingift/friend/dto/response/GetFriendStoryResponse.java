@@ -1,7 +1,7 @@
 package com.d201.fundingift.friend.dto.response;
 
 import com.d201.fundingift.consumer.entity.Consumer;
-import com.d201.fundingift.funding.entity.Funding;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,12 +32,12 @@ public class GetFriendStoryResponse implements Comparable<GetFriendStoryResponse
         this.startDate = startDate;
     }
 
-    public static GetFriendStoryResponse from(Funding funding, Consumer consumer) {
+    public static GetFriendStoryResponse from(FundingEntity fundingEntity, Consumer consumer) {
         return builder()
                 .consumerId(consumer.getId())
                 .name(consumer.getName())
                 .profileImageUrl(consumer.getProfileImageUrl())
-                .startDate(funding.getStartDate())
+                .startDate(fundingEntity.getStartDate())
                 .build();
     }
 

@@ -12,8 +12,8 @@ import com.d201.fundingift.friend.dto.GetFriendCommand;
 import com.d201.fundingift.friend.dto.response.GetFriendStoryResponse;
 import com.d201.fundingift.friend.dto.response.GetFriendsResponse;
 
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ public class FriendService {
 
     private final ConsumerRepository consumerRepository;
     private final FriendRepository friendRepository;
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJPARepository;
     private final FriendExternalPort friendExternalPort;
     private final SecurityUtil securityUtil;
 
@@ -103,8 +103,8 @@ public class FriendService {
         for(Friend f : friends) {
             log.info(String.valueOf(f.getToConsumer().getId()));
             //친구의 펀딩 목록 중 진행중이고 시작일이 제일 빠른 하나 반환
-            List<Funding> privateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, true);
-            List<Funding> notPrivateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, false);
+            List<FundingEntity> privateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, true);
+            List<FundingEntity> notPrivateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, false);
 
             Optional<Consumer> consumer = findByConsumerId(f.getToConsumer().getId());
 
@@ -135,8 +135,8 @@ public class FriendService {
         return consumerRepository.findByIdAndDeletedAtIsNull(consumerId);
     }
 
-    private List<Funding> getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(Friend f, boolean isPrivate) {
-        return fundingRepository.findAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f.getToConsumer().getId(),isPrivate);
+    private List<FundingEntity> getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(Friend f, boolean isPrivate) {
+        return fundingJPARepository.findAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f.getToConsumer().getId(),isPrivate);
     }
 
     private boolean checkingIsFavoriteFriend(Long toConsumerId, Long consumerId) {

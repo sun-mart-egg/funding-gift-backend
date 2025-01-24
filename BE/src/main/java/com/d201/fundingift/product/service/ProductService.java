@@ -3,7 +3,7 @@ package com.d201.fundingift.product.service;
 import com.d201.fundingift._common.exception.CustomException;
 import com.d201.fundingift._common.response.SliceList;
 import com.d201.fundingift._common.util.SecurityUtil;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import com.d201.fundingift.product.dto.response.GetProductCategoryResponse;
 import com.d201.fundingift.product.dto.response.GetProductDetailResponse;
 import com.d201.fundingift.product.dto.response.GetProductOptionResponse;
@@ -12,7 +12,6 @@ import com.d201.fundingift.product.entity.Product;
 import com.d201.fundingift.product.repository.ProductCategoryRepository;
 import com.d201.fundingift.product.repository.ProductOptionRepository;
 import com.d201.fundingift.product.repository.ProductRepository;
-import com.d201.fundingift.wishlist.entity.Wishlist;
 import com.d201.fundingift.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +37,7 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
     private final WishlistRepository wishlistRepository;
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJpaRepository;
     private final SecurityUtil securityUtil;
 
     // 카테고리 리스트 조회
@@ -80,7 +79,7 @@ public class ProductService {
 
     public SliceList<GetProductResponse> getProductsRank(Integer page, Integer size) {
         Pageable pageable = PageRequest.of(page, size);
-        return getProductResponseSliceList(fundingRepository.findProductSliceOrderByFundingCount(pageable));
+        return getProductResponseSliceList(fundingJpaRepository.findProductSliceOrderByFundingCount(pageable));
     }
 
     // 상품 상세 조회

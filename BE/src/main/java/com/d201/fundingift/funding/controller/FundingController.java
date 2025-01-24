@@ -2,11 +2,13 @@ package com.d201.fundingift.funding.controller;
 
 
 import com.d201.fundingift._common.response.*;
+import com.d201.fundingift._common.util.SecurityUtil;
 import com.d201.fundingift.funding.dto.request.DeleteFundingRequest;
 import com.d201.fundingift.funding.dto.request.PostFundingRequest;
 import com.d201.fundingift.funding.dto.response.GetFundingCalendarResponse;
 import com.d201.fundingift.funding.dto.response.GetFundingDetailResponse;
 import com.d201.fundingift.funding.dto.response.GetFundingResponse;
+import com.d201.fundingift.funding.service.FundingPostService;
 import com.d201.fundingift.funding.service.FundingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,6 +33,8 @@ import static com.d201.fundingift._common.response.SuccessType.*;
 public class FundingController {
 
     private final FundingService fundingService;
+    private final FundingPostService fundingPostService;
+    private final SecurityUtil securityUtil;
 
     @Operation(summary = "펀딩 생성",
             description = "소비자가 펀딩을 생성합니다.")
@@ -39,15 +43,26 @@ public class FundingController {
                     description = "성공",
                     useReturnTypeSchema = true),
             @ApiResponse(responseCode = "400",
-                    description = "소비자가 없는 경우 / 제품이 없는 경우 / 제품 옵션이 없는 경우 / 기념일 카테고리가 없는 경우 / 펀딩 기간이 7일 이상인 경우",
+                    description = """ 
+                    소비자가 없는 경우 \n 
+                    상품이 없는 경우 \n 
+                    상품 옵션이 없는 경우 \n
+                    상품과 상품 옵션이 맞지 않는 경우 \n
+                    시작일이 현재 날짜보다 과거인 경우 \n
+                    기념일이 시작일보다 과거인 경우 \n
+                    종료일이 기념일 보다 과거인 경우 \n
+                    시작일 종료일 7일 넘는 경우 \n
+                    0 >= 목표 금액 인 경우 \n
+                    최소 금액 <= 0, 목표 금액 < 최소 금액 인경우 \n
+                    """,
                     content = @Content(
                             schema = @Schema(implementation = ErrorResponse.class)
                     ))
     })
     @PostMapping
-    public SuccessResponse<Void> postFunding(@RequestBody PostFundingRequest fundingCreateRequestDto) {
+    public SuccessResponse<Void> postFunding(@RequestBody PostFundingRequest fundingCreateRequest) {
 
-        fundingService.postFunding(fundingCreateRequestDto);
+        fundingPostService.postFunding(securityUtil.getConsumer(), fundingCreateRequest);
         return ResponseUtils.ok(CREATE_FUNDING_SUCCESS);
     }
 

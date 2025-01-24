@@ -1,6 +1,6 @@
 package com.d201.fundingift.funding.dto.response;
 
-import com.d201.fundingift.funding.entity.AnniversaryCategory;
+import com.d201.fundingift.funding.intrastructure.entity.AnniversaryCategory;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

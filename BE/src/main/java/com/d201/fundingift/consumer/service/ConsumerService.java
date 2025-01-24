@@ -6,7 +6,6 @@ import com.d201.fundingift._common.jwt.RedisJwtRepository;
 import com.d201.fundingift._common.oauth2.service.OAuth2UserPrincipal;
 import com.d201.fundingift._common.oauth2.user.OAuth2Provider;
 import com.d201.fundingift._common.oauth2.user.OAuth2UserUnlinkManager;
-import com.d201.fundingift._common.response.ErrorType;
 import com.d201.fundingift._common.util.SecurityUtil;
 import com.d201.fundingift.attendance.entity.Attendance;
 import com.d201.fundingift.attendance.repository.AttendanceRepository;
@@ -16,9 +15,9 @@ import com.d201.fundingift.consumer.dto.response.GetConsumerMyInfoResponse;
 import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.consumer.repository.ConsumerRepository;
 import com.d201.fundingift.friend.service.FriendService;
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.entity.status.FundingStatus;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
+import com.d201.fundingift.funding.domain.status.FundingStatus;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -44,7 +43,7 @@ public class ConsumerService {
 
     private final ConsumerRepository consumerRepository;
     private final RedisJwtRepository redisJwtRepository;
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJpaRepository;
     private final AttendanceRepository attendanceRepository;
     private final SecurityUtil securityUtil;
     private final RestTemplate restTemplate;
@@ -259,16 +258,16 @@ public class ConsumerService {
         // 사용자가 참여한 펀딩 중 IN_PROGRESS 상태인 펀딩이 있는지 확인
         List<Attendance> attendances = attendanceRepository.findByConsumerIdAndDeletedAtIsNull(consumerId);
         for (Attendance attendance : attendances) {
-            Funding funding = attendance.getFunding();
-            if (funding.getFundingStatus() == FundingStatus.IN_PROGRESS) {
+            FundingEntity fundingEntity = attendance.getFundingEntity();
+            if (fundingEntity.getFundingStatus().equals(FundingStatus.IN_PROGRESS.toString())) {
                 log.error("사용자 ID: {}는 진행 중인 펀딩에 참여하고 있습니다.", consumerId);
                 return true;
             }
         }
 
         // 사용자가 생성한 펀딩 중 IN_PROGRESS 상태인 펀딩이 있는지 확인
-        List<Funding> userFundings = fundingRepository.findInProgressFundingsByConsumerId(consumerId);
-        if (!userFundings.isEmpty()) {
+        List<FundingEntity> userFundingEntities = fundingJpaRepository.findInProgressFundingsByConsumerId(consumerId);
+        if (!userFundingEntities.isEmpty()) {
             log.error("사용자 ID: {}가 생성한 진행 중인 펀딩이 있습니다.", consumerId);
             return true;
         }

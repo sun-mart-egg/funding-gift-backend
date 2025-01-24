@@ -1,4 +1,4 @@
-package com.d201.fundingift.funding.entity;
+package com.d201.fundingift.funding.intrastructure.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;

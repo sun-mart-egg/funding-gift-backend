@@ -8,8 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.util.Optional;
-
 /*
  *  Security Context의 인증 객체로부터 다양한 정보를 뽑아서 제공하는 클래스
  */

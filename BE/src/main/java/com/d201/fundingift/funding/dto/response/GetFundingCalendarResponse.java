@@ -1,6 +1,6 @@
 package com.d201.fundingift.funding.dto.response;
 
-import com.d201.fundingift.funding.entity.Funding;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -52,18 +52,18 @@ public class GetFundingCalendarResponse {
         this.anniversaryCategoryName = anniversaryCategoryName;
     }
 
-    public static GetFundingCalendarResponse from(Funding funding) {
+    public static GetFundingCalendarResponse from(FundingEntity fundingEntity) {
         return GetFundingCalendarResponse.builder()
-                .fundingId(funding.getId())
-                .anniversaryDate(funding.getAnniversaryDateToString())
-                .startDate(funding.getStartDateToString())
-                .endDate(funding.getEndDateToString())
-                .title(funding.getTitle())
-                .fundingStatus(String.valueOf(funding.getFundingStatus()))
-                .consumerId(funding.getConsumer().getId())
-                .consumerName(funding.getConsumer().getName())
-                .anniversaryCategoryId(funding.getAnniversaryCategory().getId())
-                .anniversaryCategoryName(funding.getAnniversaryCategory().getName())
+                .fundingId(fundingEntity.getId())
+                .anniversaryDate(fundingEntity.getAnniversaryDateToString())
+                .startDate(fundingEntity.getStartDateToString())
+                .endDate(fundingEntity.getEndDateToString())
+                .title(fundingEntity.getTitle())
+                .fundingStatus(String.valueOf(fundingEntity.getFundingStatus()))
+                .consumerId(fundingEntity.getConsumer().getId())
+                .consumerName(fundingEntity.getConsumer().getName())
+                .anniversaryCategoryId(fundingEntity.getAnniversaryCategory().getId())
+                .anniversaryCategoryName(fundingEntity.getAnniversaryCategory().getName())
                 .build();
     }
 }
