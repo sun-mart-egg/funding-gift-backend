@@ -72,10 +72,8 @@ public class FundingPostService {
     //제품과 제품 옵션이 맞는지 확인
     private void checkingProductAndProductOptionIsSame(Product product, ProductOption productOption) {
 
-        for(ProductOption po : product.getProductOptions()) {
-            if(Objects.equals(po.getId(), productOption.getId()))
-                return;
-        }
+        if(product.getId().equals(productOption.getProduct().getId()))
+            return;
 
         throw new CustomException(ErrorType.PRODUCT_OPTION_MISMATCH);
     }
