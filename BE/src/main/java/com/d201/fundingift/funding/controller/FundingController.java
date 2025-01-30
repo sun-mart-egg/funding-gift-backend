@@ -60,9 +60,9 @@ public class FundingController {
                     ))
     })
     @PostMapping
-    public SuccessResponse<Void> postFunding(@RequestBody PostFundingRequest fundingCreateRequest) {
+    public SuccessResponse<Void> postFunding(@RequestBody PostFundingRequest postFundingRequest) {
 
-        fundingPostService.postFunding(securityUtil.getConsumer(), fundingCreateRequest);
+        fundingPostService.postFunding(securityUtil.getConsumer(), postFundingRequest);
         return ResponseUtils.ok(CREATE_FUNDING_SUCCESS);
     }
 
@@ -103,7 +103,7 @@ public class FundingController {
     })
     @GetMapping("/my-fundings")
     public SuccessResponse<SliceList<GetFundingResponse>> getMyFundings(@Schema(description = "제품명으로 펀딩 목록 조회", example = "귀걸이") @RequestParam(required = false, name = "keyword") String keyword,
-                                                                        @PageableDefault(size=4, sort="createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+                                                                        @PageableDefault(size=4, sort="createdAt", direction = Sort.Direction.DESC)Pageable pageable) {
 
         return ResponseUtils.ok(fundingService.getMyFundings(keyword, pageable), GET_MY_FUNDINGS_SUCCESS);
     }

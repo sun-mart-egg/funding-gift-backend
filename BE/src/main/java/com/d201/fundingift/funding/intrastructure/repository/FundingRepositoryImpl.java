@@ -14,6 +14,6 @@ public class FundingRepositoryImpl implements FundingRepository {
 
     @Override
     public void save(Funding funding) {
-        fundingJPARepository.save(FundingMapper.INSTANCE.fundingToFundingEntity(funding));
+        fundingJPARepository.save(FundingMapper.FundingEntityFromFunding(funding));
     }
 }

@@ -51,7 +51,7 @@ public class FundingPostService {
         // 목표 금액, 최소 금액 검증
         FundingPrice fundingPrice = FundingPrice.of(postFundingRequest.getTargetPrice(), postFundingRequest.getMinPrice());
 
-        fundingRepository.save(FundingMapper.INSTANCE.toFunding(consumer, product, productOption, anniversaryCategory, fundingDateAndStatus, fundingPrice, postFundingRequest));
+        fundingRepository.save(FundingMapper.toFunding(consumer, product, productOption, anniversaryCategory, fundingDateAndStatus, fundingPrice, postFundingRequest));
     }
 
     private AnniversaryCategory getAnniversaryCategory(Integer anniversaryCategoryId) {

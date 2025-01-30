@@ -3,7 +3,6 @@ package com.d201.fundingift.funding.service;
 import com.d201.fundingift._common.exception.CustomException;
 import com.d201.fundingift._common.response.ErrorType;
 import com.d201.fundingift._common.response.SliceList;
-import com.d201.fundingift._common.util.FcmNotificationProvider;
 import com.d201.fundingift._common.util.SecurityUtil;
 import com.d201.fundingift.attendance.repository.AttendanceRepository;
 import com.d201.fundingift.consumer.entity.Consumer;
@@ -17,7 +16,6 @@ import com.d201.fundingift.funding.dto.response.GetFundingDetailResponse;
 import com.d201.fundingift.funding.dto.response.GetFundingResponse;
 import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
-import com.d201.fundingift._common.dto.FcmNotificationDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
@@ -37,45 +35,6 @@ public class FundingService {
     private final ConsumerRepository consumerRepository;
     private final FriendRepository friendRepository;
     private final SecurityUtil securityUtil;
-    private final FcmNotificationProvider fcmNotificationProvider;
-
-//    @Transactional
-//    public void postFunding(PostFundingRequest postFundingRequest) {
-//        Consumer consumer = getConsumer();
-//
-//        //상품 없으면 예외
-//        Product product = getProduct(postFundingRequest);
-//
-//        //상품 옵션 없으면 예외
-//        ProductOption productOption = getProductOption(postFundingRequest);
-//
-//        //제품과 제품 옵션이 맞는지 확인
-//        checkingProductAndProductOptionIsSame(product, productOption);
-//
-//        //기념일 카테고리 없으면 예외
-//        AnniversaryCategory anniversaryCategory = getAnniversaryCategory(postFundingRequest);
-//
-//        //시작일이 현재 날짜보다 과거면 예외
-//        isStartDatePast(postFundingRequest.getStartDate());
-//
-//        // 기념일이 시작일보다 과거면 예외
-//        isAnniversaryDatePast(postFundingRequest.getAnniversaryDate(), postFundingRequest.getStartDate());
-//
-//        // 종료일이 기념일 보다 과거이면 예외
-//        isEndDatePast(postFundingRequest.getEndDate(), postFundingRequest.getAnniversaryDate());
-//
-//        //시작일 종료일 7일 넘으면 예외
-//        isOver7Days(postFundingRequest.getStartDate(), postFundingRequest.getEndDate());
-//
-//        //시작일이 오늘이면 IN_PROGRESS로 상태 변경, 미래면 PRE_PROGRESS
-//        fundingJPARepository.save(Funding.from(postFundingRequest, IsStartDateToday(postFundingRequest.getStartDate()), consumer, anniversaryCategory, product, productOption));
-//
-//        // 알림
-//        fcmNotificationProvider.sendToMany(
-//                getConsumersByToConsumerIdAndFavorite(consumer.getId()),
-//                FcmNotificationDto.of("펀딩 등록 알림", consumer.getName() + "님이 펀딩을 등록했어요!")
-//        );
-//    }
 
     @Transactional
     public void deleteFunding(DeleteFundingRequest deleteFundingRequest) {
