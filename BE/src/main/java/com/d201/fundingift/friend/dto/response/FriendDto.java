@@ -1,4 +1,4 @@
-package com.d201.fundingift.friend.dto;
+package com.d201.fundingift.friend.dto.response;
 
 import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.friend.domain.Friend;

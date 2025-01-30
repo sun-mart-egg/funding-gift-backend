@@ -1,11 +1,11 @@
-package com.d201.fundingift.friend.dto;
+package com.d201.fundingift.friend.dto.response;
 
 import lombok.Builder;
 import lombok.Getter;
 
 @Getter
 @Builder
-public class GetFriendCommand {
+public class GetFriendResponse {
 
     private String socialId;
     private Boolean isFavorite;

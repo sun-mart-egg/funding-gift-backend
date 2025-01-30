@@ -7,8 +7,8 @@ import com.d201.fundingift.consumer.repository.ConsumerRepository;
 import com.d201.fundingift.friend.domain.Friend;
 import com.d201.fundingift.friend.domain.port.FriendExternalPort;
 import com.d201.fundingift.friend.domain.port.FriendRepository;
-import com.d201.fundingift.friend.dto.FriendDto;
-import com.d201.fundingift.friend.dto.GetFriendCommand;
+import com.d201.fundingift.friend.dto.response.FriendDto;
+import com.d201.fundingift.friend.dto.response.GetFriendResponse;
 import com.d201.fundingift.friend.dto.response.GetFriendStoryResponse;
 import com.d201.fundingift.friend.dto.response.GetFriendsResponse;
 
@@ -42,11 +42,11 @@ public class FriendService {
      */
     @Transactional
     public void synchronizeFriends(Long consumerId) {
-        List<GetFriendCommand> friends = friendExternalPort.getFriends(consumerId);
+        List<GetFriendResponse> friends = friendExternalPort.getFriends(consumerId);
         Consumer consumer = findByConsumerId(consumerId)
                 .orElseThrow(() -> new CustomException(CONSUMER_NOT_FOUND));
 
-        for(GetFriendCommand f : friends) {
+        for(GetFriendResponse f : friends) {
             // 소비자 친구 정보 받기
             Consumer toConsumer = consumerRepository
                     .findBySocialIdAndDeletedAtIsNull(f.getSocialId())
