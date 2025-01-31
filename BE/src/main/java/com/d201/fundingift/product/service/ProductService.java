@@ -3,7 +3,6 @@ package com.d201.fundingift.product.service;
 import com.d201.fundingift._common.exception.CustomException;
 import com.d201.fundingift._common.response.SliceList;
 import com.d201.fundingift._common.util.SecurityUtil;
-import com.d201.fundingift.funding.repository.FundingRepository;
 import com.d201.fundingift.product.dto.response.GetProductCategoryResponse;
 import com.d201.fundingift.product.dto.response.GetProductDetailResponse;
 import com.d201.fundingift.product.dto.response.GetProductOptionResponse;
@@ -16,7 +15,6 @@ import com.d201.fundingift.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -37,7 +35,6 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductOptionRepository productOptionRepository;
     private final WishlistRepository wishlistRepository;
-    private final FundingRepository fundingRepository;
     private final SecurityUtil securityUtil;
 
     /** 상품 카테고리 목록 조회 **/
@@ -55,6 +52,12 @@ public class ProductService {
 
         Slice<Product> products = productRepository.findAllSliceByCategoryIdAndKeyword(categoryId, keyword, PageRequest.of(page, size, getSort(sort)));
         return getProductResponseSliceList(products);
+    }
+
+    private void validateCategoryId(Integer categoryId) {
+        if (!productCategoryRepository.existsByIdAndDeletedAtIsNull(categoryId)) {
+            throw new CustomException(PRODUCT_CATEGORY_NOT_FOUND);
+        }
     }
 
     private Sort getSort(Integer sort) {
@@ -89,7 +92,7 @@ public class ProductService {
         return getProductResponseSliceList(products);
     }
 
-    // 상품 상세 조회
+    /** 상품 상세 조회 **/
     public GetProductDetailResponse getProductDetail(Long productId) {
         // 상품
         Product product = findByProductId(productId);
@@ -102,7 +105,7 @@ public class ProductService {
     }
 
     private List<GetProductOptionResponse> getOptions(Product product) {
-        return productOptionRepository.findAllByProduct(product)
+        return productOptionRepository.findByProductAndStatusIsNotInactive(product)
                 .stream().map(GetProductOptionResponse::from)
                 .collect(Collectors.toList());
     }
@@ -121,11 +124,4 @@ public class ProductService {
 
         return wishlistRepository.findByConsumerIdAndProductId(consumerId, productId).isPresent();
     }
-
-    private void validateCategoryId(Integer categoryId) {
-        if (!productCategoryRepository.existsByIdAndDeletedAtIsNull(categoryId)) {
-            throw new CustomException(PRODUCT_CATEGORY_NOT_FOUND);
-        }
-    }
-
 }
