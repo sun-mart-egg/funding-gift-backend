@@ -83,9 +83,10 @@ public class ProductService {
                 products.hasNext());
     }
 
+    /** 추천 상품 목록 조회 **/
     public SliceList<GetProductResponse> getProductsRank(Integer page, Integer size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return getProductResponseSliceList(fundingRepository.findProductSliceOrderByFundingCount(pageable));
+        Slice<Product> products = productRepository.findAllSliceOrderByFundingCount(PageRequest.of(page, size));
+        return getProductResponseSliceList(products);
     }
 
     // 상품 상세 조회
