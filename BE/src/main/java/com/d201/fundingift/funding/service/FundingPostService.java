@@ -45,7 +45,6 @@ public class FundingPostService {
 
         // 시작일, 기념일, 종료일 검증 및 상태 결정
         FundingDateAndStatus fundingDateAndStatus = FundingDateAndStatus.of(
-                postFundingRequest.getCurrentDate(),
                 postFundingRequest.getAnniversaryDate(),
                 postFundingRequest.getStartDate(),
                 postFundingRequest.getEndDate());

@@ -80,14 +80,14 @@ public class FundingPostServiceTest {
                 .gender("male")
                 .build();
 
+        LocalDate now = LocalDate.now();
         PostFundingRequest postFundingRequest = PostFundingRequest.builder()
                 .productId(1L)
                 .productOptionId(1L)
                 .anniversaryCategoryId(1)
-                .currentDate(LocalDate.of(2024, 12, 8))
-                .anniversaryDate(LocalDate.of(2024, 12, 12))
-                .startDate(LocalDate.of(2024, 12, 8))
-                .endDate(LocalDate.of(2024, 12, 14))
+                .anniversaryDate(now.plusDays(3))
+                .startDate(now)
+                .endDate(now.plusDays(6))
                 .targetPrice(50000)
                 .minPrice(1000)
                 .title("내 생일이야")

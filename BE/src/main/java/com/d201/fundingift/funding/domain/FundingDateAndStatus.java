@@ -20,16 +20,16 @@ public class FundingDateAndStatus {
     private FundingStatus fundingStatus;
 
     @Builder
-    public FundingDateAndStatus(LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate, FundingStatus fundingStatus) {
+    private FundingDateAndStatus(LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate, FundingStatus fundingStatus) {
         this.anniversaryDate = anniversaryDate;
         this.startDate = startDate;
         this.endDate = endDate;
         this.fundingStatus = fundingStatus;
     }
 
-    public static FundingDateAndStatus of(LocalDate currentDate, LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate) {
+    public static FundingDateAndStatus of(LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate) {
 
-        isStartDatePast(currentDate, startDate);
+        isStartDatePast(startDate);
         isAnniversaryDatePast(anniversaryDate, startDate);
         isEndDatePast(endDate, anniversaryDate);
         isOver7Days(startDate, endDate);
@@ -38,13 +38,13 @@ public class FundingDateAndStatus {
                 .anniversaryDate(anniversaryDate)
                 .startDate(startDate)
                 .endDate(endDate)
-                .fundingStatus(IsStartDateToday(startDate))
+                .fundingStatus(isStartDateToday(startDate))
                 .build();
     }
 
     //시작일이 현재 날짜보다 과거면 예외
-    private static void isStartDatePast(LocalDate currentDate, LocalDate startDate) {
-        if(startDate.isBefore(currentDate))
+    private static void isStartDatePast(LocalDate startDate) {
+        if(startDate.isBefore(LocalDate.now()))
             throw new CustomException(ErrorType.FUNDING_START_DATE_IS_PAST);
     }
 
@@ -67,7 +67,7 @@ public class FundingDateAndStatus {
     }
 
     //시작일이 오늘이면 IN_PROGRESS로 상태 변경, 미래면 PRE_PROGRESS
-    private static FundingStatus IsStartDateToday(LocalDate startDate) {
+    private static FundingStatus isStartDateToday(LocalDate startDate) {
         if(startDate.equals(LocalDate.now()))
             return FundingStatus.IN_PROGRESS;
         return FundingStatus.PRE_PROGRESS;

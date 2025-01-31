@@ -17,9 +17,6 @@ public class PostFundingRequest {
     @Schema(description = "목표 금액(펀딩 만들 당시의 제품 금액)", example = "500000")
     private Integer targetPrice;
 
-    @Schema(description = "펀딩생성 요청 날짜", example = "2024-12-12")
-    private LocalDate currentDate;
-
     @Schema(description = "기념일 날짜", example = "2024-12-12")
     private LocalDate anniversaryDate;
 
