@@ -53,12 +53,6 @@ public interface FundingRepository extends JpaRepository<Funding, Long> {
             "AND f.consumer.id = :consumerId AND f.isPrivate = false AND f.deletedAt IS NULL")
     List<Funding> findAllByConsumerIdAndIsPrivateAndDeletedAtIsNull(@Param("consumerId") Long consuerId, @Param("year") Integer year, @Param("month") Integer month);
 
-    @Query("select p FROM Funding f right join f.product p " +
-            "where p.status = 'ACTIVE' and p.deletedAt is null " +
-            "group by p order by count(f) desc")
-    Slice<Product> findProductSliceOrderByFundingCount(Pageable pageable);
-
-
     @Query("SELECT f FROM Funding f WHERE f.consumer.id IN :consumerIds and f.fundingStatus = 'IN_PROGRESS' AND f.deletedAt IS NULL")
     Slice<Funding> findAllByConsumerIdsAndFundingStatusAndDeletedAtIsNull(@Param("consumerIds") List<Long> consumerIds, Pageable pageable);
 
