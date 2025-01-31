@@ -21,6 +21,5 @@ public interface ProductOptionRepository extends JpaRepository<ProductOption, Lo
 
     @Query("select po from ProductOption po " +
             "where po.product = :product and po.status <> 'INACTIVE' and po.deletedAt is null")
-    List<ProductOption> findAllByProduct(@Param("product") Product product);
-
+    List<ProductOption> findByProductAndStatusIsNotInactive(@Param("product") Product product);
 }
