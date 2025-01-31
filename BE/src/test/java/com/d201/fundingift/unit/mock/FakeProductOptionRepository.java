@@ -51,7 +51,7 @@ public class FakeProductOptionRepository implements ProductOptionRepository {
     }
 
     @Override
-    public List<ProductOption> findAllByProduct(Product product) {
+    public List<ProductOption> findByProductAndStatusIsNotInactive(Product product) {
         return null;
     }
 

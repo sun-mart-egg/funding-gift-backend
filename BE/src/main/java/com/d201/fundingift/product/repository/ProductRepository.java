@@ -15,28 +15,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             "where p.id = :productId and p.status = 'ACTIVE' and p.deletedAt is null")
     Optional<Product> findById(@Param("productId") Long productId);
 
-    // 전체 목록
     @Query("select p from Product p " +
-            "where p.status = 'ACTIVE' and p.deletedAt is null")
-    Slice<Product> findAllSlice(Pageable pageable);
-
-    // 전체 목록 + 검색어
-    @Query("select p from Product p " +
-            "where (p.name like %:keyword% or p.description like %:keyword% or p.productCategory.name like %:keyword%) " +
-            "and p.status = 'ACTIVE' and p.deletedAt is null")
-    Slice<Product> findAllSliceByKeyword(@Param("keyword") String keyword, Pageable pageable);
-
-    // 카테고리 별 목록
-    @Query("select p from Product p " +
-            "where p.productCategory.id = :categoryId " +
-            "and p.status = 'ACTIVE' and p.deletedAt is null")
-    Slice<Product> findAllSliceByCategoryId(@Param("categoryId") Integer productCategoryId, Pageable pageable);
-
-    // 카테고리 별 목록 + 검색어
-    @Query("select p from Product p " +
-            "where p.productCategory.id = :categoryId " +
-            "and (p.name like %:keyword% or p.description like %:keyword% or p.productCategory.name like %:keyword%) " +
+            "where (:categoryId is null or p.productCategory.id = :categoryId) " +
+            "and (:keyword is null or p.name like %:keyword% or p.description like %:keyword% or p.productCategory.name like %:keyword%) " +
             "and p.status = 'ACTIVE' and p.deletedAt is null")
     Slice<Product> findAllSliceByCategoryIdAndKeyword(@Param("categoryId") Integer productCategoryId, @Param("keyword") String keyword, Pageable pageable);
 
+    @Query("select p from Product p " +
+            "left join FundingEntity f on f.product = p " +
+            "group by p " +
+            "order by count(f) desc")
+    Slice<Product> findAllSliceOrderByFundingCount(Pageable pageable);
 }

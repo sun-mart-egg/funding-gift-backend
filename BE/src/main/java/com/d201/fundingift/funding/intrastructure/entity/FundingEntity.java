@@ -14,7 +14,8 @@ import org.hibernate.annotations.SQLDelete;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-@Entity(name = "funding")
+@Entity
+@Table(name = "funding")
 @Getter
 @ToString
 @DynamicInsert

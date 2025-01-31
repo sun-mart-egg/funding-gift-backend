@@ -10,7 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 
-@Entity(name = "Friend")
+@Entity
+@Table(name = "friend")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class FriendEntity extends BaseTime {

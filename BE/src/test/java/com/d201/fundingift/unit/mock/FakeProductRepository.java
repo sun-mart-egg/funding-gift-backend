@@ -52,22 +52,12 @@ public class FakeProductRepository implements ProductRepository {
     }
 
     @Override
-    public Slice<Product> findAllSlice(Pageable pageable) {
-        return null;
-    }
-
-    @Override
-    public Slice<Product> findAllSliceByKeyword(String keyword, Pageable pageable) {
-        return null;
-    }
-
-    @Override
-    public Slice<Product> findAllSliceByCategoryId(Integer productCategoryId, Pageable pageable) {
-        return null;
-    }
-
-    @Override
     public Slice<Product> findAllSliceByCategoryIdAndKeyword(Integer productCategoryId, String keyword, Pageable pageable) {
+        return null;
+    }
+
+    @Override
+    public Slice<Product> findAllSliceOrderByFundingCount(Pageable pageable) {
         return null;
     }
 

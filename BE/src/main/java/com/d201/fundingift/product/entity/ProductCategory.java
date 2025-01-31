@@ -30,8 +30,4 @@ public class ProductCategory {
 
     @Column(nullable = true)
     private LocalDateTime deletedAt;
-
-    @OneToMany(mappedBy = "productCategory", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Product> products = new ArrayList<>();
-
 }
