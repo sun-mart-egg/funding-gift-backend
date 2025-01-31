@@ -22,7 +22,7 @@ spring:
         format_sql: true
         use_sql_comments: true
   profiles:
-    include: local
+    include: secret
 
   security:
     oauth2:
