@@ -1,11 +1,13 @@
 package com.d201.fundingift.funding.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
 
 @Getter
+@Builder
 @Schema(name = "FundingCreateRequestDto", description = "펀딩을 생성할 때 필요한 정보들 입니다.")
 public class PostFundingRequest {
 

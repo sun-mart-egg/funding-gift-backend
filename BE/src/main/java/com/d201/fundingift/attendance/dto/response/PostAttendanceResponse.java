@@ -2,7 +2,7 @@ package com.d201.fundingift.attendance.dto.response;
 
 import com.d201.fundingift.attendance.entity.Attendance;
 import com.d201.fundingift.consumer.entity.Consumer;
-import com.d201.fundingift.funding.entity.Funding;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -42,10 +42,10 @@ public class PostAttendanceResponse {
         this.phoneNumber = phoneNumber;
     }
 
-    public static PostAttendanceResponse from(Attendance attendance, Consumer attendee, Funding funding) {
+    public static PostAttendanceResponse from(Attendance attendance, Consumer attendee, FundingEntity fundingEntity) {
         return builder()
                 .attendanceId(attendance.getId())
-                .fundingName(funding.getConsumer().getName() +"님의 " + funding.getProduct().getName() + " 펀딩")
+                .fundingName(fundingEntity.getConsumer().getName() +"님의 " + fundingEntity.getProduct().getName() + " 펀딩")
                 .price(attendance.getPrice())
                 .attendeeId(attendee.getId())
                 .attendeeName(attendee.getName())

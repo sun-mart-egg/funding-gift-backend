@@ -1,38 +1,24 @@
 package com.d201.fundingift._common.oauth2.handler;
 
-import com.d201.fundingift._common.exception.CustomException;
 import com.d201.fundingift._common.jwt.JwtUtil;
 import com.d201.fundingift._common.jwt.RedisJwtRepository;
 import com.d201.fundingift._common.oauth2.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.d201.fundingift._common.oauth2.service.OAuth2UserPrincipal;
-import com.d201.fundingift._common.oauth2.user.OAuth2Provider;
 import com.d201.fundingift._common.oauth2.user.OAuth2UserUnlinkManager;
 import com.d201.fundingift._common.oauth2.util.CookieUtils;
-import com.d201.fundingift._common.response.ErrorType;
-import com.d201.fundingift._common.response.ResponseUtils;
-import com.d201.fundingift.attendance.entity.Attendance;
-import com.d201.fundingift.attendance.repository.AttendanceRepository;
-import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.consumer.service.ConsumerService;
 import com.d201.fundingift.friend.service.FriendService;
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.entity.status.FundingStatus;
-import com.d201.fundingift.funding.repository.FundingRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.IOException;
-import java.util.List;
-import java.util.Optional;
 
 import static com.d201.fundingift._common.oauth2.HttpCookieOAuth2AuthorizationRequestRepository.MODE_PARAM_COOKIE_NAME;
 import static com.d201.fundingift._common.oauth2.HttpCookieOAuth2AuthorizationRequestRepository.REDIRECT_URI_PARAM_COOKIE_NAME;

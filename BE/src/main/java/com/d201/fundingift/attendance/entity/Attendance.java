@@ -3,13 +3,11 @@ package com.d201.fundingift.attendance.entity;
 import com.d201.fundingift._common.entity.BaseTime;
 import com.d201.fundingift.attendance.dto.request.PostAttendanceRequest;
 import com.d201.fundingift.consumer.entity.Consumer;
-import com.d201.fundingift.funding.entity.Funding;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import com.d201.fundingift.payment.entity.PaymentInfo;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
-
-import java.time.LocalDate;
 
 @Entity
 @Getter
@@ -41,29 +39,29 @@ public class Attendance extends BaseTime {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "funding_id", referencedColumnName = "funding_id")
-    private Funding funding;
+    private FundingEntity fundingEntity;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_info_id", referencedColumnName = "payment_info_id")
     private PaymentInfo paymentInfo;
 
     @Builder
-    private Attendance(String sendMessageTitle, String sendMessage, String receiveMessage, Integer price, Consumer consumer, Funding funding) {
+    private Attendance(String sendMessageTitle, String sendMessage, String receiveMessage, Integer price, Consumer consumer, FundingEntity fundingEntity) {
         this.sendMessageTitle = sendMessageTitle;
         this.sendMessage = sendMessage;
         this.receiveMessage = receiveMessage;
         this.price = price;
         this.consumer = consumer;
-        this.funding = funding;
+        this.fundingEntity = fundingEntity;
     }
 
-    public static Attendance from(PostAttendanceRequest postAttendanceRequest, Consumer consumer, Funding funding) {
+    public static Attendance from(PostAttendanceRequest postAttendanceRequest, Consumer consumer, FundingEntity fundingEntity) {
         return Attendance.builder()
                 .sendMessageTitle(postAttendanceRequest.getSendMessageTitle())
                 .sendMessage(postAttendanceRequest.getSendMessage())
                 .price(postAttendanceRequest.getPrice())
                 .consumer(consumer)
-                .funding(funding)
+                .fundingEntity(fundingEntity)
                 .build();
     }
 

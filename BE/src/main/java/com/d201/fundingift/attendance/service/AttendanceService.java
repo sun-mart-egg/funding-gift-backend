@@ -15,8 +15,8 @@ import com.d201.fundingift.attendance.repository.AttendanceRepository;
 import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.friend.domain.Friend;
 import com.d201.fundingift.friend.domain.port.FriendRepository;
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import com.d201.fundingift._common.dto.FcmNotificationDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class AttendanceService {
 
     private final AttendanceRepository attendanceRepository;
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJpaRepository;
     private final FriendRepository friendRepository;
     private final SecurityUtil securityUtil;
     private final FcmNotificationProvider fcmNotificationProvider;
@@ -47,18 +47,18 @@ public class AttendanceService {
         Consumer attendee = getConsumer();
 
         //펀딩 존재 여부
-        Funding funding = getFunding(postAttendanceRequest.getFundingId());
+        FundingEntity fundingEntity = getFunding(postAttendanceRequest.getFundingId());
 
         //펀딩 상태 확인
-        checkingFundingStatus(String.valueOf(funding.getFundingStatus()));
+        checkingFundingStatus(String.valueOf(fundingEntity.getFundingStatus()));
 
         //펀딩 참여자의 친구목록에 펀딩 생성자가 있는지 확인
-        checkingFriend(attendee.getId(), funding.getConsumer().getId());
+        checkingFriend(attendee.getId(), fundingEntity.getConsumer().getId());
 
         //펀딩 생성자가 본인의 친구만 참여 가능하도록 설정 하였는지 확인
-        if(funding.getIsPrivate()) {
+        if(fundingEntity.getIsPrivate()) {
             //펀딩 참여자가 펀딩 생성자의 친구인지 확인
-            checkingFriend(funding.getConsumer().getId(), attendee.getId());
+            checkingFriend(fundingEntity.getConsumer().getId(), attendee.getId());
         }
 
         /**
@@ -67,17 +67,17 @@ public class AttendanceService {
          * (목표금액 - 모인금액 < 최소금액)인 경우 최소 금액 이하라도 가능
          * 최소금액 이하인 경우 예외
          */
-        checkingFundingPrice(funding, postAttendanceRequest.getPrice());
+        checkingFundingPrice(fundingEntity, postAttendanceRequest.getPrice());
 
         //주문 생성
-        Attendance saved = attendanceRepository.save(Attendance.from(postAttendanceRequest, attendee, funding));
+        Attendance saved = attendanceRepository.save(Attendance.from(postAttendanceRequest, attendee, fundingEntity));
         saved.updateDeletedAt(LocalDateTime.now());
 
         // 알림
-        fcmNotificationProvider.sendToOne(funding.getConsumer().getId(),
+        fcmNotificationProvider.sendToOne(fundingEntity.getConsumer().getId(),
                 FcmNotificationDto.of("펀딩 참여 알림", attendee.getName() + "님이 펀딩에 참여했어요!"));
 
-        return PostAttendanceResponse.from(saved, attendee, funding);
+        return PostAttendanceResponse.from(saved, attendee, fundingEntity);
     }
 
     //펀딩 상세 조회의 펀딩 참여자 정보 리스트
@@ -85,15 +85,15 @@ public class AttendanceService {
         Long myConsumerId = securityUtil.getConsumerId();
 
         //펀딩 존재 여부 확인
-        Funding funding = getFunding(fundingId);
+        FundingEntity fundingEntity = getFunding(fundingId);
 
         //내 펀딩, (나의 친구 펀딩 + isPrivate false), (펀딩 생성자의 친한친구가 나 + isPrivate true)일 경우 상세 보기 가능
-        if(checkingMyFunding(myConsumerId, funding.getConsumer().getId())) {
-            return getMyAttendanceResponseSliceList(findAllByFundingId(funding.getId(), pageable));
-        } else if(!funding.getIsPrivate() && checkingMyFriend(myConsumerId, funding.getConsumer().getId())) {
-            return getMyAttendanceResponseSliceList(findAllByFundingId(funding.getId(), pageable));
-        } else if(funding.getIsPrivate() && checkingIsFavoriteFriend(funding.getConsumer().getId(), myConsumerId)) {
-            return getMyAttendanceResponseSliceList(findAllByFundingId(funding.getId(), pageable));
+        if(checkingMyFunding(myConsumerId, fundingEntity.getConsumer().getId())) {
+            return getMyAttendanceResponseSliceList(findAllByFundingId(fundingEntity.getId(), pageable));
+        } else if(!fundingEntity.getIsPrivate() && checkingMyFriend(myConsumerId, fundingEntity.getConsumer().getId())) {
+            return getMyAttendanceResponseSliceList(findAllByFundingId(fundingEntity.getId(), pageable));
+        } else if(fundingEntity.getIsPrivate() && checkingIsFavoriteFriend(fundingEntity.getConsumer().getId(), myConsumerId)) {
+            return getMyAttendanceResponseSliceList(findAllByFundingId(fundingEntity.getId(), pageable));
         }
 
         throw new CustomException(ErrorType.USER_UNAUTHORIZED);
@@ -104,13 +104,13 @@ public class AttendanceService {
         Long myConsumerId = securityUtil.getConsumerId();
 
         //펀딩 존재 여부 확인
-        Funding funding = getFunding(fundingId);
+        FundingEntity fundingEntity = getFunding(fundingId);
 
         //펀딩 참여 존재 여부 확인
         Attendance attendance = getAttendance(attendanceId);
 
         //펀딩 참여 상세 정보 조회 권한 확인
-        checkingAuthorizedAttendanceDetail(funding, myConsumerId, attendance);
+        checkingAuthorizedAttendanceDetail(fundingEntity, myConsumerId, attendance);
 
         return GetAttendanceDetailResponse.from(attendance);
     }
@@ -121,13 +121,13 @@ public class AttendanceService {
         Consumer consumer = securityUtil.getConsumer();;
 
         //펀딩 존재 여부 확인
-        Funding funding = getFunding(updateAttendanceRequest.getFundingId());
+        FundingEntity fundingEntity = getFunding(updateAttendanceRequest.getFundingId());
 
         //펀딩 참여 존재 여부 확인
         Attendance attendance = getAttendance(updateAttendanceRequest.getAttendanceId());
 
         //감사 메시지 작성 권한 확인
-        checkingAuthorizeWritingReceiveMessage(funding, consumer.getId());
+        checkingAuthorizeWritingReceiveMessage(fundingEntity, consumer.getId());
 
         attendance.writingReceiveMessage(updateAttendanceRequest.getReceiveMessage());
 
@@ -139,10 +139,10 @@ public class AttendanceService {
     /**
      * 내부 메서드
      */
-    private static void checkingAuthorizedAttendanceDetail(Funding funding, Long myConsumerId, Attendance attendance) {
+    private static void checkingAuthorizedAttendanceDetail(FundingEntity fundingEntity, Long myConsumerId, Attendance attendance) {
         log.info("myConsumerId={}, funding.getConsumer={}, attendance.getConsumer={}"
-                , myConsumerId, funding.getConsumer().getId(), attendance.getConsumer().getId());
-        if(!Objects.equals(funding.getConsumer().getId(), myConsumerId)
+                , myConsumerId, fundingEntity.getConsumer().getId(), attendance.getConsumer().getId());
+        if(!Objects.equals(fundingEntity.getConsumer().getId(), myConsumerId)
                 && !Objects.equals(attendance.getConsumer().getId(), myConsumerId))
             throw new CustomException(ErrorType.USER_UNAUTHORIZED);
     }
@@ -151,8 +151,8 @@ public class AttendanceService {
         return securityUtil.getConsumer();
     }
 
-    private Funding getFunding(Long fundingId) {
-        return fundingRepository.findByIdAndDeletedAtIsNull(fundingId)
+    private FundingEntity getFunding(Long fundingId) {
+        return fundingJpaRepository.findByIdAndDeletedAtIsNull(fundingId)
                 .orElseThrow(() -> new CustomException(ErrorType.FUNDING_NOT_FOUND));
     }
 
@@ -177,29 +177,29 @@ public class AttendanceService {
                 .orElseThrow(() -> new CustomException(ErrorType.FRIEND_NOT_FOUND));
     }
 
-    private void checkingFundingPrice(Funding funding, Integer price) {
+    private void checkingFundingPrice(FundingEntity fundingEntity, Integer price) {
 
         //(지불 금액 + 모인금액 > 목표금액)인 경우 예외
-        if(price > funding.getTargetPrice() - funding.getSumPrice())
+        if(price > fundingEntity.getTargetPrice() - fundingEntity.getSumPrice())
             throw new CustomException(ErrorType.FUNDING_OVER_TARGET_PRICE);
 
         //(목표금액 - 모인금액 < 최소금액)인 경우 최소 금액 이하라도 가능
-        if(funding.getTargetPrice() - funding.getSumPrice() < funding.getMinPrice())
+        if(fundingEntity.getTargetPrice() - fundingEntity.getSumPrice() < fundingEntity.getMinPrice())
             return;
 
         //최소금액 이하인 경우 예외
-        if(price < funding.getMinPrice())
+        if(price < fundingEntity.getMinPrice())
             throw new CustomException(ErrorType. FUNDING_NOT_VERIFY_MIN_PRICE);
     }
 
-    private void checkingFundingTargetPrice(Integer price, Funding funding) {
-        Integer targetPrice = funding.addSumPrice(price);
+    private void checkingFundingTargetPrice(Integer price, FundingEntity fundingEntity) {
+        Integer targetPrice = fundingEntity.addSumPrice(price);
 
-        if(targetPrice > funding.getTargetPrice())
+        if(targetPrice > fundingEntity.getTargetPrice())
             throw new CustomException(ErrorType.FUNDING_OVER_TARGET_PRICE);
 
-        if(targetPrice.equals(funding.getTargetPrice()))
-            funding.changeStatus("SUCCESS");
+        if(targetPrice.equals(fundingEntity.getTargetPrice()))
+            fundingEntity.changeStatus("SUCCESS");
     }
 
     private boolean checkingMyFunding(Long myConsumerId, Long fundingConsumerId) {
@@ -227,8 +227,8 @@ public class AttendanceService {
                 .orElseThrow(() -> new CustomException(ErrorType.ATTENDANCE_NOT_FOUND));
     }
 
-    private static void checkingAuthorizeWritingReceiveMessage(Funding funding, Long myConsumerId) {
-        if(!Objects.equals(funding.getConsumer().getId(), myConsumerId))
+    private static void checkingAuthorizeWritingReceiveMessage(FundingEntity fundingEntity, Long myConsumerId) {
+        if(!Objects.equals(fundingEntity.getConsumer().getId(), myConsumerId))
             throw new CustomException(ErrorType.USER_UNAUTHORIZED);
     }
 }

@@ -45,7 +45,8 @@ public class ProductOption extends BaseTime {
     private List<Review> reviews = new ArrayList<>();
 
     @Builder
-    private ProductOption(String name, Integer price, ProductOptionStatus status, Product product) {
+    private ProductOption(Long id, String name, Integer price, ProductOptionStatus status, Product product) {
+        this.id = id;
         this.name = name;
         this.price = price;
         this.status = status;

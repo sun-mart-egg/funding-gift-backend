@@ -1,14 +1,12 @@
-package com.d201.fundingift.funding.entity;
+package com.d201.fundingift.funding.intrastructure.entity;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 @Entity
 @Getter
-@ToString
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class AnniversaryCategory {
 
@@ -20,4 +18,8 @@ public class AnniversaryCategory {
     @Column(nullable = false, length = 10)
     private String name;
 
+    public AnniversaryCategory(Integer id, String name) {
+        this.id = id;
+        this.name = name;
+    }
 }

@@ -61,7 +61,8 @@ public class Product extends BaseTime {
     private ProductCategory productCategory;
 
     @Builder
-    private Product(String name, Integer price, String description, String image, Double reviewAvg, Integer reviewCnt, ProductStatus status, ProductCategory productCategory) {
+    private Product(Long id, String name, Integer price, String description, String image, Double reviewAvg, Integer reviewCnt, ProductStatus status, ProductCategory productCategory) {
+        this.id = id;
         this.name = name;
         this.price = price;
         this.description = description;

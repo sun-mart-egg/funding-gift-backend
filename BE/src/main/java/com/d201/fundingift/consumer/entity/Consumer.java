@@ -12,7 +12,6 @@ import org.hibernate.annotations.SQLDelete;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -63,7 +62,8 @@ public class Consumer extends BaseTime {
     private List<Attendance> attendances = new ArrayList<>();
 
     @Builder
-    private Consumer(String socialId, String email, String name, String profileImageUrl, String phoneNumber, String birthyear, String birthday, String gender) {
+    private Consumer(Long id, String socialId, String email, String name, String profileImageUrl, String phoneNumber, String birthyear, String birthday, String gender) {
+        this.id = id;
         this.socialId = socialId;
         this.email = email;
         this.name = name;

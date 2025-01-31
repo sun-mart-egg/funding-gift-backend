@@ -3,7 +3,7 @@ package com.d201.fundingift.friend.infrastructure.external;
 import com.d201.fundingift._common.exception.CustomException;
 import com.d201.fundingift._common.jwt.RedisJwtRepository;
 import com.d201.fundingift.friend.domain.port.FriendExternalPort;
-import com.d201.fundingift.friend.dto.GetFriendCommand;
+import com.d201.fundingift.friend.dto.response.GetFriendResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -26,13 +26,13 @@ public class KakaoFriendClient implements FriendExternalPort {
     private static final String FRIENDS_LIST_SERVICE_URL = "https://kapi.kakao.com/v1/api/talk/friends?limit=50";
 
     @Override
-    public List<GetFriendCommand> getFriends(Long consumerId) {
+    public List<GetFriendResponse> getFriends(Long consumerId) {
 
         // todo : optional로 바꾸기 or 예외 처리 하기
         // 카카오 엑세스 토큰 가져오기
         String kakaoAccessToken = redisJwtRepository.getKakaoAccessToken(consumerId);
 
-        List<GetFriendCommand> list = new ArrayList<>();
+        List<GetFriendResponse> list = new ArrayList<>();
         String nextUrl = FRIENDS_LIST_SERVICE_URL;
 
         try {
@@ -52,7 +52,7 @@ public class KakaoFriendClient implements FriendExternalPort {
 
                 response.getBody()
                         .get("elements")
-                        .forEach(element -> list.add(GetFriendCommand.builder()
+                        .forEach(element -> list.add(GetFriendResponse.builder()
                                         .isFavorite(element.get("favorite").asBoolean())
                                         .socialId(element.get("id").asText())
                                 .build()));

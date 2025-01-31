@@ -22,7 +22,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     Slice<Product> findAllSliceByCategoryIdAndKeyword(@Param("categoryId") Integer productCategoryId, @Param("keyword") String keyword, Pageable pageable);
 
     @Query("select p from Product p " +
-            "left join Funding f on f.product = p " +
+            "left join FundingEntity f on f.product = p " +
             "group by p " +
             "order by count(f) desc")
     Slice<Product> findAllSliceOrderByFundingCount(Pageable pageable);

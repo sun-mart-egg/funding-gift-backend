@@ -1,4 +1,4 @@
-package com.d201.fundingift.funding.entity.status;
+package com.d201.fundingift.funding.domain.status;
 
 public enum FundingStatus {
 

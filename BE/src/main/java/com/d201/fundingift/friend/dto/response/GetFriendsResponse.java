@@ -1,6 +1,5 @@
 package com.d201.fundingift.friend.dto.response;
 
-import com.d201.fundingift.friend.dto.FriendDto;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;

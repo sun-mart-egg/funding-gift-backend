@@ -7,13 +7,13 @@ import com.d201.fundingift.consumer.repository.ConsumerRepository;
 import com.d201.fundingift.friend.domain.Friend;
 import com.d201.fundingift.friend.domain.port.FriendExternalPort;
 import com.d201.fundingift.friend.domain.port.FriendRepository;
-import com.d201.fundingift.friend.dto.FriendDto;
-import com.d201.fundingift.friend.dto.GetFriendCommand;
+import com.d201.fundingift.friend.dto.response.FriendDto;
+import com.d201.fundingift.friend.dto.response.GetFriendResponse;
 import com.d201.fundingift.friend.dto.response.GetFriendStoryResponse;
 import com.d201.fundingift.friend.dto.response.GetFriendsResponse;
 
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +31,7 @@ public class FriendService {
 
     private final ConsumerRepository consumerRepository;
     private final FriendRepository friendRepository;
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJPARepository;
     private final FriendExternalPort friendExternalPort;
     private final SecurityUtil securityUtil;
 
@@ -42,11 +42,11 @@ public class FriendService {
      */
     @Transactional
     public void synchronizeFriends(Long consumerId) {
-        List<GetFriendCommand> friends = friendExternalPort.getFriends(consumerId);
+        List<GetFriendResponse> friends = friendExternalPort.getFriends(consumerId);
         Consumer consumer = findByConsumerId(consumerId)
                 .orElseThrow(() -> new CustomException(CONSUMER_NOT_FOUND));
 
-        for(GetFriendCommand f : friends) {
+        for(GetFriendResponse f : friends) {
             // 소비자 친구 정보 받기
             Consumer toConsumer = consumerRepository
                     .findBySocialIdAndDeletedAtIsNull(f.getSocialId())
@@ -103,8 +103,8 @@ public class FriendService {
         for(Friend f : friends) {
             log.info(String.valueOf(f.getToConsumer().getId()));
             //친구의 펀딩 목록 중 진행중이고 시작일이 제일 빠른 하나 반환
-            List<Funding> privateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, true);
-            List<Funding> notPrivateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, false);
+            List<FundingEntity> privateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, true);
+            List<FundingEntity> notPrivateFundings = getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f, false);
 
             Optional<Consumer> consumer = findByConsumerId(f.getToConsumer().getId());
 
@@ -135,8 +135,8 @@ public class FriendService {
         return consumerRepository.findByIdAndDeletedAtIsNull(consumerId);
     }
 
-    private List<Funding> getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(Friend f, boolean isPrivate) {
-        return fundingRepository.findAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f.getToConsumer().getId(),isPrivate);
+    private List<FundingEntity> getAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(Friend f, boolean isPrivate) {
+        return fundingJPARepository.findAllByConsumerIdAndFundingStatusAndIsPrivateAndDeletedAtIsNullOrderByStartDateAsc(f.getToConsumer().getId(),isPrivate);
     }
 
     private boolean checkingIsFavoriteFriend(Long toConsumerId, Long consumerId) {

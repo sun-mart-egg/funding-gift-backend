@@ -1,8 +1,8 @@
 package com.d201.fundingift.funding.service;
 
-import com.d201.fundingift.funding.entity.Funding;
-import com.d201.fundingift.funding.entity.status.FundingStatus;
-import com.d201.fundingift.funding.repository.FundingRepository;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
+import com.d201.fundingift.funding.domain.status.FundingStatus;
+import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -18,27 +18,27 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FundingSchedulerService {
 
-    private final FundingRepository fundingRepository;
+    private final FundingJPARepository fundingJpaRepository;
 
     @Transactional
-    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
+//    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
     @Scheduled(cron = "0 8 2 * * ?", zone = "Asia/Seoul") //테스트용
     public void updateFundingStatusInProgress() {
         log.info("start updateFundingStatusInProgress");
-        List<Funding> fundings = fundingRepository.findAllByFundingStatusAndStartDateAndDeletedAtIsNull(FundingStatus.PRE_PROGRESS, LocalDate.now());
+        List<FundingEntity> fundingEntities = fundingJpaRepository.findAllByFundingStatusAndStartDateAndDeletedAtIsNull(FundingStatus.PRE_PROGRESS, LocalDate.now());
 
-        for(Funding f : fundings)
+        for(FundingEntity f : fundingEntities)
             f.changeStatus(String.valueOf(FundingStatus.IN_PROGRESS));
     }
 
     @Transactional
-    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
-//    @Scheduled(cron = "0 48 2 * * ?", zone = "Asia/Seoul") //테스트용
+//    @Scheduled(cron = "0 0 0 * * ?", zone = "Asia/Seoul") //실제 서비스용
+    @Scheduled(cron = "0 48 2 * * ?", zone = "Asia/Seoul") //테스트용
     public void updateFundingStatusSuccessOrFail() {
         log.info("start updateFundingStatusSuccessOrFail");
-        List<Funding> fundings = fundingRepository.findAllByFundingStatusAndEndDateAndDateAndDeletedAtIsNull(FundingStatus.IN_PROGRESS, LocalDate.now().minusDays(1));
+        List<FundingEntity> fundingEntities = fundingJpaRepository.findAllByFundingStatusAndEndDateAndDateAndDeletedAtIsNull(FundingStatus.IN_PROGRESS, LocalDate.now().minusDays(1));
 
-        for(Funding f : fundings)
+        for(FundingEntity f : fundingEntities)
             if(f.getSumPrice() < f.getTargetPrice())
                 f.changeStatus(String.valueOf(FundingStatus.FAIL));
             else

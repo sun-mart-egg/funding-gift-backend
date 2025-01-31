@@ -1,8 +1,7 @@
 package com.d201.fundingift.funding.service;
 
 import com.d201.fundingift.funding.dto.response.GetAnniversaryCategoryResponse;
-import com.d201.fundingift.funding.entity.AnniversaryCategory;
-import com.d201.fundingift.funding.repository.AnniversaryCategoryRepository;
+import com.d201.fundingift.funding.intrastructure.repository.AnniversaryCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

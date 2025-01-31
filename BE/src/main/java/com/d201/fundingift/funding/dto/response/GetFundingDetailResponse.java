@@ -1,6 +1,6 @@
 package com.d201.fundingift.funding.dto.response;
 
-import com.d201.fundingift.funding.entity.Funding;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -92,28 +92,28 @@ public class GetFundingDetailResponse {
         this.productOptionName = productOptionName;
     }
 
-    public static GetFundingDetailResponse from(Funding funding) {
+    public static GetFundingDetailResponse from(FundingEntity fundingEntity) {
         return builder()
-                .fundingId(funding.getId())
-                .sumPrice(funding.getSumPrice())
-                .minPrice(funding.getMinPrice())
-                .targetPrice(funding.getTargetPrice())
-                .anniversaryDate(funding.getAnniversaryDateToString())
-                .startDate(funding.getStartDateToString())
-                .endDate(funding.getEndDateToString())
-                .title(funding.getTitle())
-                .content(funding.getContent())
-                .fundingStatus(String.valueOf(funding.getFundingStatus()))
-                .isPrivate(funding.getIsPrivate())
-                .consumerId(funding.getConsumer().getId())
-                .consumerName(funding.getName())
-                .anniversaryCategoryId(funding.getAnniversaryCategory().getId())
-                .anniversaryCategoryName(funding.getAnniversaryCategory().getName())
-                .productId(funding.getProduct().getId())
-                .productName(funding.getProduct().getName())
-                .productImage(funding.getProduct().getImage())
-                .productOptionId(funding.getProductOption().getId())
-                .productOptionName(funding.getProductOption().getName())
+                .fundingId(fundingEntity.getId())
+                .sumPrice(fundingEntity.getSumPrice())
+                .minPrice(fundingEntity.getMinPrice())
+                .targetPrice(fundingEntity.getTargetPrice())
+                .anniversaryDate(fundingEntity.getAnniversaryDateToString())
+                .startDate(fundingEntity.getStartDateToString())
+                .endDate(fundingEntity.getEndDateToString())
+                .title(fundingEntity.getTitle())
+                .content(fundingEntity.getContent())
+                .fundingStatus(String.valueOf(fundingEntity.getFundingStatus()))
+                .isPrivate(fundingEntity.getIsPrivate())
+                .consumerId(fundingEntity.getConsumer().getId())
+                .consumerName(fundingEntity.getName())
+                .anniversaryCategoryId(fundingEntity.getAnniversaryCategory().getId())
+                .anniversaryCategoryName(fundingEntity.getAnniversaryCategory().getName())
+                .productId(fundingEntity.getProduct().getId())
+                .productName(fundingEntity.getProduct().getName())
+                .productImage(fundingEntity.getProduct().getImage())
+                .productOptionId(fundingEntity.getProductOption().getId())
+                .productOptionName(fundingEntity.getProductOption().getName())
                 .build();
     }
 }

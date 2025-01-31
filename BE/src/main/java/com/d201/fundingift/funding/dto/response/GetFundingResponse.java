@@ -1,6 +1,6 @@
 package com.d201.fundingift.funding.dto.response;
 
-import com.d201.fundingift.funding.entity.Funding;
+import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Getter;
@@ -80,25 +80,25 @@ public class GetFundingResponse {
         this.fundingStatus = fundingStatus;
     }
 
-    public static GetFundingResponse from(Funding funding) {
+    public static GetFundingResponse from(FundingEntity fundingEntity) {
         return builder()
-                .fundingId(funding.getId())
-                .targetPrice(funding.getTargetPrice())
-                .sumPrice(funding.getSumPrice())
-                .anniversaryDate(funding.getAnniversaryDateToString())
-                .startDate(funding.getStartDateToString())
-                .endDate(funding.getEndDateToString())
-                .title(funding.getTitle())
-                .isPrivate(funding.getIsPrivate())
-                .consumerId(funding.getConsumer().getId())
-                .consumerName(funding.getConsumer().getName())
-                .profileImageUrl(funding.getConsumer().getProfileImageUrl())
-                .anniversaryCategoryId(funding.getAnniversaryCategory().getId())
-                .anniversaryCategoryName(funding.getAnniversaryCategory().getName())
-                .productId(funding.getProduct().getId())
-                .productName(funding.getProduct().getName())
-                .productImage(funding.getProduct().getImage())
-                .fundingStatus(funding.getFundingStatus().name())
+                .fundingId(fundingEntity.getId())
+                .targetPrice(fundingEntity.getTargetPrice())
+                .sumPrice(fundingEntity.getSumPrice())
+                .anniversaryDate(fundingEntity.getAnniversaryDateToString())
+                .startDate(fundingEntity.getStartDateToString())
+                .endDate(fundingEntity.getEndDateToString())
+                .title(fundingEntity.getTitle())
+                .isPrivate(fundingEntity.getIsPrivate())
+                .consumerId(fundingEntity.getConsumer().getId())
+                .consumerName(fundingEntity.getConsumer().getName())
+                .profileImageUrl(fundingEntity.getConsumer().getProfileImageUrl())
+                .anniversaryCategoryId(fundingEntity.getAnniversaryCategory().getId())
+                .anniversaryCategoryName(fundingEntity.getAnniversaryCategory().getName())
+                .productId(fundingEntity.getProduct().getId())
+                .productName(fundingEntity.getProduct().getName())
+                .productImage(fundingEntity.getProduct().getImage())
+                .fundingStatus(fundingEntity.getFundingStatus())
                 .build();
     }
 }

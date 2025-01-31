@@ -47,6 +47,9 @@ public enum ErrorType {
     FUNDING_START_DATE_IS_PAST(HttpStatus.BAD_REQUEST, "펀딩 시작일이 과거입니다."),
     FUNDING_END_DATE_IS_PAST(HttpStatus.BAD_REQUEST, "펀딩 종료일이 기념일보다 과거입니다."),
     FUNDING_ANNIVERSARY_DATE_IS_PAST(HttpStatus.BAD_REQUEST, "기념일이 시작일보다 과거입니다."),
+    FUNDING_MINPRICE_IS_UNDER_ZERO(HttpStatus.BAD_REQUEST,"최소 금액이 0이하 입니다."),
+    FUNDING_MINPRICE_IS_OVER_TARGETPRICE(HttpStatus.BAD_REQUEST,"최소 금액이 목표금액 이상입니다."),
+    FUNDING_TARGETPRICE_IS_UNDER_ZERO(HttpStatus.BAD_REQUEST,"목표 금액이 0이하 입니다."),
 
     // 펀딩 참여
     FUNDING_NOT_VERIFY_MIN_PRICE(HttpStatus.BAD_REQUEST,"펀딩 참여 금액이 최소 금액을 만족하지 않습니다."),
