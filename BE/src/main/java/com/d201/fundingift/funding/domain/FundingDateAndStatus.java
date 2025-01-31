@@ -27,9 +27,9 @@ public class FundingDateAndStatus {
         this.fundingStatus = fundingStatus;
     }
 
-    public static FundingDateAndStatus of(LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate) {
+    public static FundingDateAndStatus of(LocalDate currentDate, LocalDate anniversaryDate, LocalDate startDate, LocalDate endDate) {
 
-        isStartDatePast(startDate);
+        isStartDatePast(currentDate, startDate);
         isAnniversaryDatePast(anniversaryDate, startDate);
         isEndDatePast(endDate, anniversaryDate);
         isOver7Days(startDate, endDate);
@@ -43,8 +43,8 @@ public class FundingDateAndStatus {
     }
 
     //시작일이 현재 날짜보다 과거면 예외
-    private static void isStartDatePast(LocalDate startDate) {
-        if(startDate.isBefore(LocalDate.now()))
+    private static void isStartDatePast(LocalDate currentDate, LocalDate startDate) {
+        if(startDate.isBefore(currentDate))
             throw new CustomException(ErrorType.FUNDING_START_DATE_IS_PAST);
     }
 

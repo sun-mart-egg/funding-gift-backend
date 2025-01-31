@@ -18,8 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Objects;
-
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -46,10 +44,14 @@ public class FundingPostService {
         AnniversaryCategory anniversaryCategory = getAnniversaryCategory(postFundingRequest.getAnniversaryCategoryId());
 
         // 시작일, 기념일, 종료일 검증 및 상태 결정
-        FundingDateAndStatus fundingDateAndStatus = FundingDateAndStatus.of(postFundingRequest.getAnniversaryDate(), postFundingRequest.getStartDate(), postFundingRequest.getEndDate());
+        FundingDateAndStatus fundingDateAndStatus = FundingDateAndStatus.of(
+                postFundingRequest.getCurrentDate(),
+                postFundingRequest.getAnniversaryDate(),
+                postFundingRequest.getStartDate(),
+                postFundingRequest.getEndDate());
 
         // 목표 금액, 최소 금액 검증
-        FundingPrice fundingPrice = FundingPrice.of(postFundingRequest.getTargetPrice(), postFundingRequest.getMinPrice());
+        FundingPrice fundingPrice = FundingPrice.of(postFundingRequest.getMinPrice(), postFundingRequest.getTargetPrice());
 
         fundingRepository.save(FundingMapper.toFunding(consumer, product, productOption, anniversaryCategory, fundingDateAndStatus, fundingPrice, postFundingRequest));
     }

@@ -6,6 +6,8 @@ import com.d201.fundingift.funding.mapper.FundingMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 @RequiredArgsConstructor
 public class FundingRepositoryImpl implements FundingRepository {
@@ -15,5 +17,10 @@ public class FundingRepositoryImpl implements FundingRepository {
     @Override
     public void save(Funding funding) {
         fundingJPARepository.save(FundingMapper.FundingEntityFromFunding(funding));
+    }
+
+    @Override
+    public Optional<Funding> findById(long l) {
+        return Optional.empty();
     }
 }
