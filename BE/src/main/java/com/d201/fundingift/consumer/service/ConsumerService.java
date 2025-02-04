@@ -110,6 +110,7 @@ public class ConsumerService {
      * - 회원 정보가 존재하지 않으면 회원가입 처리
      * - 존재하면 로그인 처리
      */
+    @Transactional // todo : 임시방편
     public String handleLoginOrRegister(OAuth2UserPrincipal principal, String targetUrl) {
         String socialId = principal.getUserInfo().getId();
         Optional<Consumer> consumerOptional = findBySocialId(socialId);
