@@ -51,21 +51,6 @@ public class ConsumerService {
     private final JwtUtil jwtUtil;
     private final OAuth2UserUnlinkManager oAuth2UserUnlinkManager;
 
-
-    // 회원가입
-    @Transactional
-    public Long saveOAuth2User(OAuth2UserPrincipal principal) {
-        Consumer consumer = Consumer.builder()
-                .socialId(principal.getUserInfo().getId())
-                .email(principal.getUserInfo().getEmail())
-                .name(principal.getUserInfo().getName())
-                .profileImageUrl(principal.getUserInfo().getProfileImageUrl())
-                // 필요한 다른 필드 설정
-                .build();
-
-        return consumerRepository.save(consumer).getId();
-    }
-
     // socialId로 회원 찾기.
     public Optional<Consumer> findBySocialId(String socialId) {
         return consumerRepository.findBySocialIdAndDeletedAtIsNull(socialId);
@@ -110,7 +95,6 @@ public class ConsumerService {
      * - 회원 정보가 존재하지 않으면 회원가입 처리
      * - 존재하면 로그인 처리
      */
-    @Transactional // todo : 임시방편
     public String handleLoginOrRegister(OAuth2UserPrincipal principal, String targetUrl) {
         String socialId = principal.getUserInfo().getId();
         Optional<Consumer> consumerOptional = findBySocialId(socialId);
@@ -127,7 +111,8 @@ public class ConsumerService {
     /**
      * 회원가입 처리 로직
      */
-    private String registerUser(OAuth2UserPrincipal principal, String targetUrl) {
+    @Transactional
+    public String registerUser(OAuth2UserPrincipal principal, String targetUrl) {
         Long consumerId = saveOAuth2User(principal);
         log.info("회원가입 완료: consumerId={}", consumerId);
 
@@ -149,23 +134,78 @@ public class ConsumerService {
                 .build().toUriString();
     }
 
+    // 회원가입
+    private Long saveOAuth2User(OAuth2UserPrincipal principal) {
+        Consumer consumer = Consumer.builder()
+                .socialId(principal.getUserInfo().getId())
+                .email(principal.getUserInfo().getEmail())
+                .name(principal.getUserInfo().getName())
+                .profileImageUrl(principal.getUserInfo().getProfileImageUrl())
+                // 필요한 다른 필드 설정
+                .build();
+
+        return consumerRepository.save(consumer).getId();
+    }
+
     /**
      * 로그인 처리 로직
      */
-    private String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl) {
+    @Transactional
+    public String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl) {
         Long consumerId = consumer.getId();
 
-        // 프로필 업데이트
-        updateProfileIfChanged(consumer, principal);
+        // 프로필 변경이 필요할 때만 update 실행
+        if (isProfileChanged(consumer, principal)) {
+            updateProfile(consumer, principal);
+        }
 
-        // 토큰 생성 및 저장
+        // ✅ 기존 Access Token 확인 (유효하면 재사용)
+        String existingAccessToken = redisJwtRepository.getAccessToken(consumerId);
+        if (existingAccessToken != null && jwtUtil.validateAccessToken(existingAccessToken)) {
+            log.info("기존 토큰 재사용: consumerId={}, accessToken={}", consumerId, existingAccessToken);
+            return buildRedirectUrl(targetUrl, existingAccessToken, consumerId);
+        }
+
+        // ✅ 기존 Refresh Token 확인
+        String existingRefreshToken = redisJwtRepository.getRefreshToken(consumerId);
+        if (existingRefreshToken != null && jwtUtil.validateRefreshToken(existingRefreshToken)) {
+            String newAccessToken = jwtUtil.createAccessToken(consumerId.toString());
+            redisJwtRepository.saveAccessToken(consumerId, newAccessToken);
+            log.info("새로운 Access Token 발급: consumerId={}", consumerId);
+            return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
+        }
+
+        // 🔥 Access Token과 Refresh Token 모두 만료 → 새로 발급
         String accessToken = jwtUtil.createAccessToken(consumerId.toString());
+        String refreshToken = jwtUtil.createRefreshToken(consumerId.toString());
         redisJwtRepository.saveAccessToken(consumerId, accessToken);
+        redisJwtRepository.saveRefreshToken(consumerId, refreshToken);
         redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
 
-        log.info("로그인 완료: consumerId={}", consumerId);
+        log.info("Access Token & Refresh Token 새로 발급: consumerId={}", consumerId);
+        return buildRedirectUrl(targetUrl, accessToken, consumerId);
+    }
 
-        // 리다이렉션 URL 생성
+    /**
+     * 🔹 프로필이 변경되었는지 확인
+     */
+    public boolean isProfileChanged(Consumer consumer, OAuth2UserPrincipal principal) {
+        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
+        return !newProfileUrl.equals(consumer.getProfileImageUrl());
+    }
+
+    /**
+     * 🔹 프로필 변경이 필요한 경우에만 실행되는 트랜잭션
+     */
+    private void updateProfile(Consumer consumer, OAuth2UserPrincipal principal) {
+        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
+        consumer.updateProfileImageUrl(newProfileUrl);
+        consumerRepository.save(consumer);
+        log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+    }
+
+    // ✅ URL 생성 메서드 분리
+    private String buildRedirectUrl(String targetUrl, String accessToken, Long consumerId) {
         return UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("access-token", accessToken)
                 .queryParam("consumer-id", consumerId)
@@ -238,18 +278,6 @@ public class ConsumerService {
                 .orElseThrow(() -> new CustomException(USER_NOT_FOUND));
         log.info("{} 사용자의 추가 정보 기입",consumerId);
         consumer.updateInfo(putConsumerInfoRequestDto);
-    }
-
-    /**
-     * 프로필 업데이트 메서드
-     */
-    private void updateProfileIfChanged(Consumer consumer, OAuth2UserPrincipal principal) {
-        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
-        if (!newProfileUrl.equals(consumer.getProfileImageUrl())) {
-            consumer.updateProfileImageUrl(newProfileUrl);
-            consumerRepository.save(consumer);
-            log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
-        }
     }
 
     public Boolean isConsumerInProgressOrAttendanceFunding() {
