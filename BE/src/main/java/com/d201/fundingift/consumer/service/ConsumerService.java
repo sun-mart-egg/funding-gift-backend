@@ -216,6 +216,7 @@ public class ConsumerService {
     /**
      * 로그아웃 처리 로직
      */
+    @Transactional
     public void logoutUser() {
         Long consumerId = Long.valueOf(securityUtil.getConsumer().getId());
         String kakaoAccessToken = redisJwtRepository.getKakaoAccessToken(consumerId);
@@ -244,6 +245,7 @@ public class ConsumerService {
     /**
      * 회원탈퇴 처리 로직
      */
+    @Transactional
     public String handleUnlink(OAuth2UserPrincipal principal, String targetUrl) {
         String socialId = principal.getUserInfo().getId();
         String accessToken = principal.getUserInfo().getAccessToken();
