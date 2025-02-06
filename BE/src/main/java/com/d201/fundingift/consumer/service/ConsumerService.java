@@ -163,31 +163,24 @@ public class ConsumerService {
             updateProfile(consumer, principal);
         }
 
-        // ✅ 기존 Access Token 확인 (유효하면 재사용)
-        String existingAccessToken = redisJwtRepository.getAccessToken(consumerId);
-        if (existingAccessToken != null && jwtUtil.validateAccessToken(existingAccessToken)) {
-            log.info("기존 토큰 재사용: consumerId={}, accessToken={}", consumerId, existingAccessToken);
-            return buildRedirectUrl(targetUrl, existingAccessToken, consumerId);
-        }
+        // ✅ 새로운 Access Token 발급 (기존 것 무조건 갱신)
+        String newAccessToken = jwtUtil.createAccessToken(consumerId.toString());
+        redisJwtRepository.saveAccessToken(consumerId, newAccessToken);
+        log.info("새로운 Access Token 발급: consumerId={}, accessToken={}", consumerId, newAccessToken);
 
         // ✅ 기존 Refresh Token 확인
         String existingRefreshToken = redisJwtRepository.getRefreshToken(consumerId);
         if (existingRefreshToken != null && jwtUtil.validateRefreshToken(existingRefreshToken)) {
-            String newAccessToken = jwtUtil.createAccessToken(consumerId.toString());
-            redisJwtRepository.saveAccessToken(consumerId, newAccessToken);
-            log.info("새로운 Access Token 발급: consumerId={}", consumerId);
+            log.info("기존 Refresh Token 유지: consumerId={}", consumerId);
             return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
         }
 
-        // 🔥 Access Token과 Refresh Token 모두 만료 → 새로 발급
-        String accessToken = jwtUtil.createAccessToken(consumerId.toString());
-        String refreshToken = jwtUtil.createRefreshToken(consumerId.toString());
-        redisJwtRepository.saveAccessToken(consumerId, accessToken);
-        redisJwtRepository.saveRefreshToken(consumerId, refreshToken);
-        redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
+        // 🔥 Refresh Token 만료 → 새로 발급
+        String newRefreshToken = jwtUtil.createRefreshToken(consumerId.toString());
+        redisJwtRepository.saveRefreshToken(consumerId, newRefreshToken);
+        log.info("Refresh Token 새로 발급: consumerId={}", consumerId);
 
-        log.info("Access Token & Refresh Token 새로 발급: consumerId={}", consumerId);
-        return buildRedirectUrl(targetUrl, accessToken, consumerId);
+        return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
     }
 
     /**
