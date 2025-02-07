@@ -38,6 +38,7 @@ import static com.d201.fundingift._common.response.ErrorType.*;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ConsumerService {
 
     private final ConsumerRepository consumerRepository;
@@ -51,25 +52,21 @@ public class ConsumerService {
     private final OAuth2UserUnlinkManager oAuth2UserUnlinkManager;
 
     // socialId로 회원 찾기.
-    @Transactional(readOnly = true)
     public Optional<Consumer> findBySocialId(String socialId) {
         return consumerRepository.findBySocialIdAndDeletedAtIsNull(socialId);
     }
 
-    @Transactional(readOnly = true)
     public Consumer findById(Long id) {
         return consumerRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow((() -> new CustomException(USER_NOT_FOUND)));
     }
 
     // 소비자 ID 유효성 검사
-    @Transactional(readOnly = true)
     public boolean isValidConsumerId(Long consumerId) {
         return consumerRepository.existsByIdAndDeletedAtIsNull(consumerId);
     }
 
     // 내 정보 조회
-    @Transactional(readOnly = true)
     public GetConsumerMyInfoResponse getConsumerMyInfo(Authentication authentication) {
         if (authentication == null || authentication.getPrincipal() == null) {
             throw new CustomException(USER_UNAUTHORIZED);
@@ -88,7 +85,6 @@ public class ConsumerService {
     }
 
     // 소비자 프로필 조회
-    @Transactional(readOnly = true)
     public GetConsumerInfoByIdResponse getConsumerInfoById(Long consumerId) {
         return GetConsumerInfoByIdResponse.from(consumerRepository.findByIdAndDeletedAtIsNull(consumerId)
                 .orElseThrow((() -> new CustomException(USER_NOT_FOUND))));
