@@ -18,72 +18,80 @@ import java.io.IOException;
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
     private static final String AUTHORIZATION_HEADER = "Authorization";
+    private static final String LOGIN_CALLBACK_PATH = "/login-callback";
+    private static final String REFRESH_TOKEN_KEY_PREFIX = "refreshToken:";
     private static final String BEARER_PREFIX = "Bearer ";
     private final JwtUtil jwtUtil;
     private final RedisTemplate<String, String> redisTemplate; // RedisTemplate 추가
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
+        return LOGIN_CALLBACK_PATH.equals(path);
+    }
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        try {
+            // 1. 요청 헤더에서 토큰을 추출합니다.
+            String token = resolveToken(request);
 
-        // 특정 경로(login-callback) 필터링 제외
-        if ("/login-callback".equals(path)) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        String token = resolveToken(request);
-        boolean isTokenRefreshed = false;
-
-        logger.info("JwtAuthorizationFilter: Filtering request");
-
-        if (StringUtils.hasText(token)) {
-            logger.info("JwtAuthorizationFilter: Token found: " + token);
-            if (jwtUtil.validateAccessToken(token)) {
-                // ✅ Access Token이 유효하면 인증 정보 설정
-                logger.info("JwtAuthorizationFilter: Valid access token");
-                setAuthenticationFromToken(token);
-            } else if (jwtUtil.isTokenExpired(token)) {
-                // ✅ Access Token 만료된 경우 Refresh Token 확인 후 재발급
-                logger.info("JwtAuthorizationFilter: Access token expired, checking refresh token...");
-
-                String userId = jwtUtil.extractUserIdFromExpiredToken(token);
-                Long consumerId = Long.parseLong(userId);
-
-                // 🪙 Redis에서 Refresh Token 가져오기
-                String refreshToken = redisTemplate.opsForValue().get("refreshToken:" + consumerId);
-
-                if (refreshToken != null && jwtUtil.validateRefreshToken(refreshToken)) {
-                    logger.info("JwtAuthorizationFilter: Valid refresh token found, issuing new access token.");
-
-                    // 🪙 새로운 Access Token 발급
-                    String newAccessToken = jwtUtil.createAccessToken(userId);
-
-                    // 🪙 SecurityContext 업데이트
-                    setAuthenticationFromToken(newAccessToken);
-
-                    // 🪙 새로운 Access Token을 응답 헤더에 추가
-                    response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
-                    isTokenRefreshed = true;
-                } else {
-                    logger.info("JwtAuthorizationFilter: No valid refresh token found.");
-                }
-            } else {
-                logger.info("JwtAuthorizationFilter: Access token is invalid");
+            // 2. 토큰이 존재하지 않는 경우
+            if (!StringUtils.hasText(token)) {
+                logger.info("JwtAuthorizationFilter: 요청에서 토큰을 찾을 수 없습니다.");
             }
-        } else {
-            logger.info("JwtAuthorizationFilter: No token found in the request");
+            // 3. 액세스 토큰이 유효한 경우
+            else if (jwtUtil.validateAccessToken(token)) {
+                processValidAccessToken(token);
+            }
+            // 4. 액세스 토큰이 만료된 경우 (리프레쉬 토큰 확인)
+            else if (jwtUtil.isTokenExpired(token)) {
+                processExpiredAccessToken(token, response);
+            }
+            // 5. 그 외 (액세스 토큰이 유효하지 않은 경우)
+            else {
+                logger.info("JwtAuthorizationFilter: 액세스 토큰이 유효하지 않습니다.");
+            }
+        } catch (Exception e){
+            logger.error("JwtAuthorizationFilter: SecurityContext에 사용자 인증 정보를 설정하는 중 오류 발생", e);
         }
 
         filterChain.doFilter(request, response);
-        logger.info("JwtAuthorizationFilter: Request processed");
+    }
 
-        // Todo : 리프레쉬 로직 작성, 정상 작동 하는 지 확인 필요
+    private void processValidAccessToken(String token) {
+        logger.info("JwtAuthorizationFilter: 유효한 액세스 토큰이 확인되었습니다.");
+        // 토큰 기반으로 인증 정보를 생성하여 SecurityContext에 저장합니다.
+        setAuthenticationFromToken(token);
+    }
 
-        // ✅ 새로운 Access Token이 발급된 경우, 클라이언트가 헤더에서 받을 수 있도록 설정
-        if (isTokenRefreshed) {
+    private void processExpiredAccessToken(String expiredToken, HttpServletResponse response) {
+        logger.info("JwtAuthorizationFilter: 액세스 토큰이 만료되었습니다. 리프레쉬 토큰 확인을 진행합니다.");
+
+        // 만료된 액세스 토큰에서 사용자 식별자(userId)를 추출합니다.
+        String userId = jwtUtil.extractUserIdFromExpiredToken(expiredToken);
+        Long consumerId = Long.parseLong(userId);
+
+        // Todo : 클라이언트가 리프레쉬 토큰을 가지고 있다가 액세스 토큰이 만료되면 같이 보내줘야함. 현재는 레디스의 리프레쉬 토큰만 확인해서 발급(X)
+
+        // Redis에서 해당 사용자의 리프레쉬 토큰을 조회합니다.
+        String refreshTokenKey = REFRESH_TOKEN_KEY_PREFIX + consumerId;
+        String refreshToken = redisTemplate.opsForValue().get(refreshTokenKey);
+
+        // 리프레쉬 토큰이 존재하며 유효한지 확인합니다.
+        if (StringUtils.hasText(refreshToken) && jwtUtil.validateRefreshToken(refreshToken)) {
+            logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰이 확인되었습니다. 새로운 액세스 토큰을 발급합니다.");
+
+            // 새로운 액세스 토큰을 발급합니다.
+            String newAccessToken = jwtUtil.createAccessToken(userId);
+
+            // SecurityContext를 새로운 액세스 토큰 기반으로 업데이트합니다.
+            setAuthenticationFromToken(newAccessToken);
+
+            // 응답 헤더에 새로운 액세스 토큰을 추가하여 클라이언트에게 전달합니다.
+            response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
             response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER);
-            logger.info("JwtAuthorizationFilter: New token added to response header");
+        } else {
+            logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰을 찾지 못했습니다.");
         }
     }
 
