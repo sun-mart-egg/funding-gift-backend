@@ -42,8 +42,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             if (jwtUtil.validateAccessToken(token)) {
                 // ✅ Access Token이 유효하면 인증 정보 설정
                 logger.info("JwtAuthorizationFilter: Valid access token");
-                Authentication authentication = jwtUtil.getAuthentication(token);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                setAuthenticationFromToken(token);
             } else if (jwtUtil.isTokenExpired(token)) {
                 // ✅ Access Token 만료된 경우 Refresh Token 확인 후 재발급
                 logger.info("JwtAuthorizationFilter: Access token expired, checking refresh token...");
@@ -61,7 +60,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
                     String newAccessToken = jwtUtil.createAccessToken(userId);
 
                     // 🪙 SecurityContext 업데이트
-                    SecurityContextHolder.getContext().setAuthentication(jwtUtil.getAuthentication(newAccessToken));
+                    setAuthenticationFromToken(newAccessToken);
 
                     // 🪙 새로운 Access Token을 응답 헤더에 추가
                     response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
@@ -94,5 +93,10 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             return token.substring(BEARER_PREFIX.length());
         }
         return null;
+    }
+
+    public void setAuthenticationFromToken(String token) {
+        Authentication authentication = jwtUtil.getAuthentication(token);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }
