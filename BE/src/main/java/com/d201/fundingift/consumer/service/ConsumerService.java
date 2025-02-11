@@ -119,7 +119,6 @@ public class ConsumerService {
         // 토큰 생성 및 저장
         String accessToken = jwtUtil.createAccessToken(consumerId.toString());
         String refreshToken = jwtUtil.createRefreshToken(consumerId.toString());
-        redisJwtRepository.saveAccessToken(consumerId, accessToken);
         redisJwtRepository.saveRefreshToken(consumerId, refreshToken);
         redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
 
