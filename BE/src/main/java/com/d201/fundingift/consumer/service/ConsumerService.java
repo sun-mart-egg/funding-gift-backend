@@ -154,27 +154,15 @@ public class ConsumerService {
     public String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl) {
         Long consumerId = consumer.getId();
 
-        // 프로필 변경이 필요할 때만 update 실행
-        if (isProfileChanged(consumer, principal)) {
-            updateProfile(consumer, principal);
-        }
+        updateProfile(consumer, principal);
 
-        // ✅ 새로운 Access Token 발급 (기존 것 무조건 갱신)
+        // ✅ 새로운 Access Token, Refresh Token 발급
         String newAccessToken = jwtUtil.createAccessToken(consumerId.toString());
-        redisJwtRepository.saveAccessToken(consumerId, newAccessToken);
-        log.info("새로운 Access Token 발급: consumerId={}, accessToken={}", consumerId, newAccessToken);
-
-        // ✅ 기존 Refresh Token 확인
-        String existingRefreshToken = redisJwtRepository.getRefreshToken(consumerId);
-        if (existingRefreshToken != null && jwtUtil.validateRefreshToken(existingRefreshToken)) {
-            log.info("기존 Refresh Token 유지: consumerId={}", consumerId);
-            return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
-        }
-
-        // 🔥 Refresh Token 만료 → 새로 발급
         String newRefreshToken = jwtUtil.createRefreshToken(consumerId.toString());
+
         redisJwtRepository.saveRefreshToken(consumerId, newRefreshToken);
-        log.info("Refresh Token 새로 발급: consumerId={}", consumerId);
+        log.info("새로운 Access 및 Refresh Token 발급: consumerId={}, accessToken={}, refreshToken={}",
+                consumerId, newAccessToken, newRefreshToken);
 
         return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
     }
@@ -228,9 +216,8 @@ public class ConsumerService {
             throw new RuntimeException("Failed to logout from Kakao");
         }
 
-        // 2. 로컬 로그아웃 처리: 토큰 무효화
-        // 레디스에서 해당 사용자의 액세스 토큰 및 리프레시 토큰 및 카카오 액세스 토큰 삭제
-        redisJwtRepository.deleteAccessToken(consumerId);
+        // 2. 로컬 로그아웃 처리 : 토큰 삭제
+        // 레디스에서 해당 사용자의 리프레시 토큰 및 카카오 액세스 토큰 삭제
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
     }
@@ -252,7 +239,6 @@ public class ConsumerService {
         oAuth2UserUnlinkManager.unlink(provider, accessToken);
 
         // Redis 토큰 삭제
-        redisJwtRepository.deleteAccessToken(consumerId);
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
 
