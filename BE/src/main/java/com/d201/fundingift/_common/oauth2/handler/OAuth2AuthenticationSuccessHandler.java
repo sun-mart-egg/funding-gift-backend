@@ -84,9 +84,9 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         // mode에 따라 로그인, 회원가입 또는 회원탈퇴 처리
         switch (mode.toLowerCase()) {
             case "login":
-                return consumerService.handleLoginOrRegister(principal, targetUrl);
+                return consumerService.handleLoginOrRegister(principal, targetUrl, response);
             case "unlink":
-                return consumerService.handleUnlink(principal, targetUrl);
+                return consumerService.handleUnlink(principal, targetUrl, request, response);
             default:
 
                 return UriComponentsBuilder.fromUriString(targetUrl)

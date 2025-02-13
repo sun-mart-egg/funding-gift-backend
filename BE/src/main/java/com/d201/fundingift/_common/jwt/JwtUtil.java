@@ -149,4 +149,12 @@ public class JwtUtil {
             return null;
         }
     }
+
+    public int getAccessTokenExpiry() {
+        return (int) (ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS / 1000); // 초 단위 반환
+    }
+
+    public int getRefreshTokenExpiry() {
+        return (int) (REFRESH_TOKEN_EXPIRE_TIME_IN_MILLISECONDS / 1000); // 초 단위 반환
+    }
 }

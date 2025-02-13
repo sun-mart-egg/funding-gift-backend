@@ -2,6 +2,7 @@ package com.d201.fundingift._common.jwt;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -65,27 +66,36 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     }
 
     private void processExpiredAccessToken(String expiredToken, HttpServletRequest request, HttpServletResponse response) throws IOException {
-        logger.info("JwtAuthorizationFilter: 액세스 토큰이 만료되었습니다. 리프레쉬 토큰 확인을 진행합니다.");
+        logger.info("JwtAuthorizationFilter: 액세스 토큰이 만료되었습니다. 쿠키에 저장된 리프레쉬 토큰을 확인합니다.");
 
         // 만료된 액세스 토큰에서 사용자 식별자(userId)를 추출합니다.
         String userId = jwtUtil.extractUserIdFromExpiredToken(expiredToken);
         Long consumerId = Long.parseLong(userId);
 
-        // Todo : 클라이언트가 리프레쉬 토큰을 가지고 있다가 액세스 토큰이 만료되면 같이 보내줘야함.
+        // Todo : 클라이언트에 쿠키에 있는 리프레쉬 토큰을 가져오기.
 
-        // 클라이언트가 요청 헤더에 보낸 리프레쉬 토큰을 추출합니다.
-        String providedRefreshToken = request.getHeader("Refresh-Token");
+        // 1. 쿠키에서 리프레쉬 토큰을 추출합니다.
+        String providedRefreshToken = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("Refresh-Token".equals(cookie.getName())) {
+                    providedRefreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
         if (!StringUtils.hasText(providedRefreshToken)) {
-            logger.info("JwtAuthorizationFilter: 리프레쉬 토큰이 없음 ❌ → 401 반환 (재로그인 필요)");
-            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is required"); // 401 반환
+            logger.info("JwtAuthorizationFilter: 쿠키에 리프레쉬 토큰이 없음 ❌ → 401 반환");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is required");
             return;
         }
 
-        // Redis에서 해당 사용자의 리프레쉬 토큰을 조회합니다.
+        // 2. Redis에서 해당 사용자의 리프레쉬 토큰을 조회합니다.
         String refreshTokenKey = REFRESH_TOKEN_KEY_PREFIX + consumerId;
         String storedRefreshToken = redisTemplate.opsForValue().get(refreshTokenKey);
 
-        // 클라이언트가 제공한 토큰과 Redis에 저장된 토큰이 일치하며, 토큰이 유효한지 확인합니다.
+        // 3. 쿠키에서 제공한 토큰과 Redis에 저장된 토큰이 일치하며, 토큰이 유효한지 확인합니다.
         if (StringUtils.hasText(storedRefreshToken) &&providedRefreshToken.equals(storedRefreshToken) &&
                 jwtUtil.validateRefreshToken(providedRefreshToken)) {
             logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰이 확인되었습니다. 새로운 액세스 토큰을 발급합니다.");
@@ -94,16 +104,23 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             String newAccessToken = jwtUtil.createAccessToken(userId);
             String newRefreshToken = jwtUtil.createRefreshToken(userId);
 
-            // Redis에 새로운 리프레쉬 토큰을 저장하여 기존 토큰을 덮어씌웁니다.
+            // Redis에 새로운 리프레쉬 토큰 저장 (기존 토큰 덮어씌우기)
             redisTemplate.opsForValue().set(refreshTokenKey, newRefreshToken);
 
             // SecurityContext를 새로운 액세스 토큰 기반으로 업데이트합니다.
             setAuthenticationFromToken(newAccessToken);
 
-            // 응답 헤더에 새로운 액세스 토큰과 리프레쉬 토큰을 추가하여 클라이언트에게 전달합니다.
+            // 응답 헤더에 새로운 액세스 토큰을 추가합니다.
             response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
-            response.setHeader("Refresh-Token", newRefreshToken);
-            response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER + ", Refresh-Token");
+            response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER);
+
+            // 5. 응답 쿠키에 새로운 리프레쉬 토큰을 설정합니다.
+            Cookie refreshTokenCookie = new Cookie("Refresh-Token", newRefreshToken);
+            refreshTokenCookie.setHttpOnly(true); // 자바스크립트에서 접근 불가
+            refreshTokenCookie.setSecure(true);   // HTTPS 환경에서만 전송 (프로덕션 환경에서는 true)
+            refreshTokenCookie.setPath("/");        // 전체 도메인에서 접근 가능하도록 설정
+            // refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 필요시 만료 시간 설정 (예: 7일)
+            response.addCookie(refreshTokenCookie);
         } else {
             logger.info("JwtAuthorizationFilter: ❌ 리프레쉬 토큰이 유효하지 않음 → 401 반환 (재로그인 필요)");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is Invalid"); // 401 반환
