@@ -25,11 +25,11 @@ import java.util.Date;
 public class JwtUtil {
 
     //private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 30; // 30min
-    private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 30; // 30초
+    private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60; // 30초
     private static final long REFRESH_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 60; // 60분
 //    private final RedisTemplate redisTemplate;
 
-    
+
     @Value("${jwt.secret}")
     private String secret;
     private Key key;

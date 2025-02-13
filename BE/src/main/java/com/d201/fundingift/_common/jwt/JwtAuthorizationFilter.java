@@ -64,7 +64,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         setAuthenticationFromToken(token);
     }
 
-    private void processExpiredAccessToken(String expiredToken, HttpServletResponse response) {
+    private void processExpiredAccessToken(String expiredToken, HttpServletRequest request, HttpServletResponse response) {
         logger.info("JwtAuthorizationFilter: 액세스 토큰이 만료되었습니다. 리프레쉬 토큰 확인을 진행합니다.");
 
         // 만료된 액세스 토큰에서 사용자 식별자(userId)를 추출합니다.
@@ -73,12 +73,20 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
 
         // Todo : 클라이언트가 리프레쉬 토큰을 가지고 있다가 액세스 토큰이 만료되면 같이 보내줘야함. 현재는 레디스의 리프레쉬 토큰만 확인해서 발급(X)
 
+        // 클라이언트가 요청 헤더에 보낸 리프레쉬 토큰을 추출합니다.
+        String providedRefreshToken = request.getHeader("Refresh-Token");
+        if (!StringUtils.hasText(providedRefreshToken)) {
+            logger.info("JwtAuthorizationFilter: 클라이언트에서 리프레쉬 토큰을 제공하지 않았습니다.");
+            return;
+        }
+
         // Redis에서 해당 사용자의 리프레쉬 토큰을 조회합니다.
         String refreshTokenKey = REFRESH_TOKEN_KEY_PREFIX + consumerId;
-        String refreshToken = redisTemplate.opsForValue().get(refreshTokenKey);
+        String storedRefreshToken = redisTemplate.opsForValue().get(refreshTokenKey);
 
-        // 리프레쉬 토큰이 존재하며 유효한지 확인합니다.
-        if (StringUtils.hasText(refreshToken) && jwtUtil.validateRefreshToken(refreshToken)) {
+        // 클라이언트가 제공한 토큰과 Redis에 저장된 토큰이 일치하며, 토큰이 유효한지 확인합니다.
+        if (StringUtils.hasText(storedRefreshToken) &&providedRefreshToken.equals(storedRefreshToken) &&
+                jwtUtil.validateRefreshToken(providedRefreshToken)) {
             logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰이 확인되었습니다. 새로운 액세스 토큰을 발급합니다.");
 
             // 새로운 액세스 토큰과 리프레쉬 토큰을 발급합니다.
