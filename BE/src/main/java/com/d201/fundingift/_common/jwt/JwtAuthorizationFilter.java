@@ -45,7 +45,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             }
             // 4. 액세스 토큰이 만료된 경우 (리프레쉬 토큰 확인)
             else if (jwtUtil.isTokenExpired(token)) {
-                processExpiredAccessToken(token, response);
+                processExpiredAccessToken(token, request, response);
             }
             // 5. 그 외 (액세스 토큰이 유효하지 않은 경우)
             else {
@@ -64,19 +64,20 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         setAuthenticationFromToken(token);
     }
 
-    private void processExpiredAccessToken(String expiredToken, HttpServletRequest request, HttpServletResponse response) {
+    private void processExpiredAccessToken(String expiredToken, HttpServletRequest request, HttpServletResponse response) throws IOException {
         logger.info("JwtAuthorizationFilter: 액세스 토큰이 만료되었습니다. 리프레쉬 토큰 확인을 진행합니다.");
 
         // 만료된 액세스 토큰에서 사용자 식별자(userId)를 추출합니다.
         String userId = jwtUtil.extractUserIdFromExpiredToken(expiredToken);
         Long consumerId = Long.parseLong(userId);
 
-        // Todo : 클라이언트가 리프레쉬 토큰을 가지고 있다가 액세스 토큰이 만료되면 같이 보내줘야함. 현재는 레디스의 리프레쉬 토큰만 확인해서 발급(X)
+        // Todo : 클라이언트가 리프레쉬 토큰을 가지고 있다가 액세스 토큰이 만료되면 같이 보내줘야함.
 
         // 클라이언트가 요청 헤더에 보낸 리프레쉬 토큰을 추출합니다.
         String providedRefreshToken = request.getHeader("Refresh-Token");
         if (!StringUtils.hasText(providedRefreshToken)) {
-            logger.info("JwtAuthorizationFilter: 클라이언트에서 리프레쉬 토큰을 제공하지 않았습니다.");
+            logger.info("JwtAuthorizationFilter: 리프레쉬 토큰이 없음 ❌ → 401 반환 (재로그인 필요)");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is required"); // 401 반환
             return;
         }
 
@@ -104,7 +105,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             response.setHeader("Refresh-Token", newRefreshToken);
             response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER + ", Refresh-Token");
         } else {
-            logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰을 찾지 못했습니다.");
+            logger.info("JwtAuthorizationFilter: ❌ 리프레쉬 토큰이 유효하지 않음 → 401 반환 (재로그인 필요)");
+            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is Invalid"); // 401 반환
         }
     }
 
