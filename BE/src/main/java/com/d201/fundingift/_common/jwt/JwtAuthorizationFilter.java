@@ -81,15 +81,20 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(refreshToken) && jwtUtil.validateRefreshToken(refreshToken)) {
             logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰이 확인되었습니다. 새로운 액세스 토큰을 발급합니다.");
 
-            // 새로운 액세스 토큰을 발급합니다.
+            // 새로운 액세스 토큰과 리프레쉬 토큰을 발급합니다.
             String newAccessToken = jwtUtil.createAccessToken(userId);
+            String newRefreshToken = jwtUtil.createRefreshToken(userId);
+
+            // Redis에 새로운 리프레쉬 토큰을 저장하여 기존 토큰을 덮어씌웁니다.
+            redisTemplate.opsForValue().set(refreshTokenKey, newRefreshToken);
 
             // SecurityContext를 새로운 액세스 토큰 기반으로 업데이트합니다.
             setAuthenticationFromToken(newAccessToken);
 
-            // 응답 헤더에 새로운 액세스 토큰을 추가하여 클라이언트에게 전달합니다.
+            // 응답 헤더에 새로운 액세스 토큰과 리프레쉬 토큰을 추가하여 클라이언트에게 전달합니다.
             response.setHeader(AUTHORIZATION_HEADER, BEARER_PREFIX + newAccessToken);
-            response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER);
+            response.setHeader("Refresh-Token", newRefreshToken);
+            response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER + ", Refresh-Token");
         } else {
             logger.info("JwtAuthorizationFilter: 유효한 리프레쉬 토큰을 찾지 못했습니다.");
         }

@@ -126,11 +126,7 @@ public class ConsumerService {
         friendService.synchronizeFriends(consumerId);
 
         // 리다이렉션 URL 생성
-        return UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("access-token", accessToken)
-                .queryParam("consumer-id", consumerId)
-                .queryParam("next-page", "sign-up")
-                .build().toUriString();
+        return buildRedirectUrl(targetUrl, accessToken, refreshToken, consumerId, "sign-up");
     }
 
     // 회원가입
@@ -164,7 +160,7 @@ public class ConsumerService {
         log.info("새로운 Access 및 Refresh Token 발급: consumerId={}",
                 consumerId);
 
-        return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
+        return buildRedirectUrl(targetUrl, newAccessToken, newRefreshToken, consumerId, "main");
     }
 
     /**
@@ -178,11 +174,12 @@ public class ConsumerService {
     }
 
     // ✅ URL 생성 메서드 분리
-    private String buildRedirectUrl(String targetUrl, String accessToken, Long consumerId) {
+    private String buildRedirectUrl(String targetUrl, String accessToken, String refreshToken, Long consumerId, String nextPage) {
         return UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("access-token", accessToken)
+                .queryParam("refresh-token", refreshToken)
                 .queryParam("consumer-id", consumerId)
-                .queryParam("next-page", "main")
+                .queryParam("next-page", nextPage)
                 .build().toUriString();
     }
 
