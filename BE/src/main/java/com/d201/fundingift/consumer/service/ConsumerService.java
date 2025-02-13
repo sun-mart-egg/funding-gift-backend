@@ -160,18 +160,11 @@ public class ConsumerService {
         String newRefreshToken = jwtUtil.createRefreshToken(consumerId.toString());
 
         redisJwtRepository.saveRefreshToken(consumerId, newRefreshToken);
-        log.info("새로운 Access 및 Refresh Token 발급: consumerId={}, accessToken={}, refreshToken={}",
-                consumerId, newAccessToken, newRefreshToken);
+        redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
+        log.info("새로운 Access 및 Refresh Token 발급: consumerId={}",
+                consumerId);
 
         return buildRedirectUrl(targetUrl, newAccessToken, consumerId);
-    }
-
-    /**
-     * 🔹 프로필이 변경되었는지 확인
-     */
-    public boolean isProfileChanged(Consumer consumer, OAuth2UserPrincipal principal) {
-        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
-        return !newProfileUrl.equals(consumer.getProfileImageUrl());
     }
 
     /**
@@ -193,30 +186,12 @@ public class ConsumerService {
                 .build().toUriString();
     }
 
-    /**
-     * 로그아웃 처리 로직
-     */
+    // 로그아웃 처리 로직
     @Transactional
     public void logoutUser() {
         Long consumerId = Long.valueOf(securityUtil.getConsumer().getId());
-        String kakaoAccessToken = redisJwtRepository.getKakaoAccessToken(consumerId);
         log.info("logoutUser: "+consumerId);
-        log.info("kakaoAccessToken: "+kakaoAccessToken);
 
-        // 1. 카카오 로그아웃 API 호출  전체 삭제인지?
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + kakaoAccessToken);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity("https://kapi.kakao.com/v1/user/logout", entity, String.class);
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            // 에러 처리
-            throw new RuntimeException("Failed to logout from Kakao");
-        }
-
-        // 2. 로컬 로그아웃 처리 : 토큰 삭제
-        // 레디스에서 해당 사용자의 리프레시 토큰 및 카카오 액세스 토큰 삭제
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
     }
