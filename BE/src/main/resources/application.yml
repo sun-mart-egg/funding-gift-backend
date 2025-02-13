@@ -17,10 +17,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
-    properties:
-      hibernate:
-        format_sql: true
-        use_sql_comments: true
+
   profiles:
     include: secret
 
@@ -39,7 +36,6 @@ spring:
               - account_email
               - friends
 
-            # redirect-uri: "http://localhost:8081/{action}/oauth2/code/{registrationId}" # 로컬 테스트 용
             redirect-uri: "${BASE_URL}/{action}/oauth2/code/{registrationId}" # 배포 테스트 용
             client-name: Kakao
         provider:
