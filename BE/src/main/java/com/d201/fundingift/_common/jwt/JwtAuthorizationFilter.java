@@ -14,6 +14,9 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+
+import static com.d201.fundingift._common.oauth2.util.CookieUtils.addCookie;
+
 @RequiredArgsConstructor
 @Component
 public class JwtAuthorizationFilter extends OncePerRequestFilter {
@@ -115,12 +118,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             response.addHeader("Access-Control-Expose-Headers", AUTHORIZATION_HEADER);
 
             // 5. 응답 쿠키에 새로운 리프레쉬 토큰을 설정합니다.
-            Cookie refreshTokenCookie = new Cookie("Refresh-Token", newRefreshToken);
-            refreshTokenCookie.setHttpOnly(true); // 자바스크립트에서 접근 불가
-            refreshTokenCookie.setSecure(true);   // HTTPS 환경에서만 전송 (프로덕션 환경에서는 true)
-            refreshTokenCookie.setPath("/");        // 전체 도메인에서 접근 가능하도록 설정
-            // refreshTokenCookie.setMaxAge(7 * 24 * 60 * 60); // 필요시 만료 시간 설정 (예: 7일)
-            response.addCookie(refreshTokenCookie);
+            addCookie(response, "Refresh-Token", newRefreshToken, jwtUtil.getRefreshTokenExpiry());
         } else {
             logger.info("JwtAuthorizationFilter: ❌ 리프레쉬 토큰이 유효하지 않음 → 401 반환 (재로그인 필요)");
             response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Refresh token is Invalid"); // 401 반환

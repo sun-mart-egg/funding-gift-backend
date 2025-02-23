@@ -135,7 +135,7 @@ public class ConsumerService {
         addCookie(response, "Refresh-Token", refreshToken, jwtUtil.getRefreshTokenExpiry());
 
         // 리다이렉션 URL 생성
-        return buildRedirectUrl(targetUrl, consumerId, "sign-up");
+        return buildRedirectUrl(targetUrl, consumerId,accessToken,  "sign-up");
     }
 
     // 회원가입
@@ -173,7 +173,7 @@ public class ConsumerService {
         // 리프레쉬 토큰은 HTTP 쿠키에 저장
         addCookie(response, "Refresh-Token", newRefreshToken, jwtUtil.getRefreshTokenExpiry());
 
-        return buildRedirectUrl(targetUrl, consumerId, "main");
+        return buildRedirectUrl(targetUrl, consumerId, newAccessToken, "main");
     }
 
     /**
@@ -193,9 +193,10 @@ public class ConsumerService {
     }
 
     // ✅ URL 생성 메서드 분리
-    private String buildRedirectUrl(String targetUrl, Long consumerId, String nextPage) {
+    private String buildRedirectUrl(String targetUrl, Long consumerId, String accessToken, String nextPage) {
         return UriComponentsBuilder.fromUriString(targetUrl)
                 .queryParam("consumer-id", consumerId)
+                .queryParam("access-token", accessToken)
                 .queryParam("next-page", nextPage)
                 .build().toUriString();
     }
