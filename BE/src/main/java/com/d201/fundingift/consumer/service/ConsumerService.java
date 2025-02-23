@@ -18,6 +18,8 @@ import com.d201.fundingift.friend.service.FriendService;
 import com.d201.fundingift.funding.intrastructure.entity.FundingEntity;
 import com.d201.fundingift.funding.domain.status.FundingStatus;
 import com.d201.fundingift.funding.intrastructure.repository.FundingJPARepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpEntity;
@@ -33,12 +35,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.List;
 import java.util.Optional;
 
+import static com.d201.fundingift._common.oauth2.util.CookieUtils.addCookie;
+import static com.d201.fundingift._common.oauth2.util.CookieUtils.deleteCookie;
 import static com.d201.fundingift._common.response.ErrorType.*;
 
 @Service
 @Slf4j
-@Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class ConsumerService {
 
     private final ConsumerRepository consumerRepository;
@@ -51,27 +55,12 @@ public class ConsumerService {
     private final JwtUtil jwtUtil;
     private final OAuth2UserUnlinkManager oAuth2UserUnlinkManager;
 
-
-    // 회원가입
-    @Transactional
-    public Long saveOAuth2User(OAuth2UserPrincipal principal) {
-        Consumer consumer = Consumer.builder()
-                .socialId(principal.getUserInfo().getId())
-                .email(principal.getUserInfo().getEmail())
-                .name(principal.getUserInfo().getName())
-                .profileImageUrl(principal.getUserInfo().getProfileImageUrl())
-                // 필요한 다른 필드 설정
-                .build();
-
-        return consumerRepository.save(consumer).getId();
-    }
-
     // socialId로 회원 찾기.
     public Optional<Consumer> findBySocialId(String socialId) {
         return consumerRepository.findBySocialIdAndDeletedAtIsNull(socialId);
     }
 
-    private Consumer findById(Long id) {
+    public Consumer findById(Long id) {
         return consumerRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow((() -> new CustomException(USER_NOT_FOUND)));
     }
@@ -110,101 +99,126 @@ public class ConsumerService {
      * - 회원 정보가 존재하지 않으면 회원가입 처리
      * - 존재하면 로그인 처리
      */
-    @Transactional // todo : 임시방편
-    public String handleLoginOrRegister(OAuth2UserPrincipal principal, String targetUrl) {
+    public String handleLoginOrRegister(OAuth2UserPrincipal principal, String targetUrl, HttpServletResponse response) {
         String socialId = principal.getUserInfo().getId();
         Optional<Consumer> consumerOptional = findBySocialId(socialId);
 
         if (consumerOptional.isEmpty()) {
             // 회원가입 처리
-            return registerUser(principal, targetUrl);
+            return registerUser(principal, targetUrl, response);
         } else {
             // 로그인 처리
-            return loginUser(principal, consumerOptional.get(), targetUrl);
+            return loginUser(principal, consumerOptional.get(), targetUrl, response);
         }
     }
 
     /**
      * 회원가입 처리 로직
      */
-    private String registerUser(OAuth2UserPrincipal principal, String targetUrl) {
+    @Transactional
+    public String registerUser(OAuth2UserPrincipal principal, String targetUrl, HttpServletResponse response) {
         Long consumerId = saveOAuth2User(principal);
         log.info("회원가입 완료: consumerId={}", consumerId);
 
         // 토큰 생성 및 저장
         String accessToken = jwtUtil.createAccessToken(consumerId.toString());
         String refreshToken = jwtUtil.createRefreshToken(consumerId.toString());
-        redisJwtRepository.saveAccessToken(consumerId, accessToken);
         redisJwtRepository.saveRefreshToken(consumerId, refreshToken);
         redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
 
         // 친구 목록 가져오기
         friendService.synchronizeFriends(consumerId);
 
+        // 액세스 토큰은 응답 헤더에 전달
+        sendTokenResponse(response, accessToken);
+        // 리프레쉬 토큰은 HTTP 쿠키에 저장 (쿠키 유효시간은 초 단위)
+        addCookie(response, "Refresh-Token", refreshToken, jwtUtil.getRefreshTokenExpiry());
+
         // 리다이렉션 URL 생성
-        return UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("access-token", accessToken)
-                .queryParam("consumer-id", consumerId)
-                .queryParam("next-page", "sign-up")
-                .build().toUriString();
+        return buildRedirectUrl(targetUrl, consumerId,accessToken,  "sign-up");
+    }
+
+    // 회원가입
+    private Long saveOAuth2User(OAuth2UserPrincipal principal) {
+        Consumer consumer = Consumer.builder()
+                .socialId(principal.getUserInfo().getId())
+                .email(principal.getUserInfo().getEmail())
+                .name(principal.getUserInfo().getName())
+                .profileImageUrl(principal.getUserInfo().getProfileImageUrl())
+                // 필요한 다른 필드 설정
+                .build();
+
+        return consumerRepository.save(consumer).getId();
     }
 
     /**
      * 로그인 처리 로직
      */
-    private String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl) {
+    @Transactional
+    public String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl, HttpServletResponse response) {
         Long consumerId = consumer.getId();
 
-        // 프로필 업데이트
-        updateProfileIfChanged(consumer, principal);
+        updateProfile(consumer, principal);
 
-        // 토큰 생성 및 저장
-        String accessToken = jwtUtil.createAccessToken(consumerId.toString());
-        redisJwtRepository.saveAccessToken(consumerId, accessToken);
+        // ✅ 새로운 Access Token, Refresh Token 발급
+        String newAccessToken = jwtUtil.createAccessToken(consumerId.toString());
+        String newRefreshToken = jwtUtil.createRefreshToken(consumerId.toString());
+
+        redisJwtRepository.saveRefreshToken(consumerId, newRefreshToken);
         redisJwtRepository.saveKakaoAccessToken(consumerId, principal.getUserInfo().getAccessToken());
+        log.info("새로운 Access 및 Refresh Token 발급: consumerId={}", consumerId);
 
-        log.info("로그인 완료: consumerId={}", consumerId);
+        // 액세스 토큰은 응답 헤더에 전달
+        sendTokenResponse(response, newAccessToken);
+        // 리프레쉬 토큰은 HTTP 쿠키에 저장
+        addCookie(response, "Refresh-Token", newRefreshToken, jwtUtil.getRefreshTokenExpiry());
 
-        // 리다이렉션 URL 생성
-        return UriComponentsBuilder.fromUriString(targetUrl)
-                .queryParam("access-token", accessToken)
-                .queryParam("consumer-id", consumerId)
-                .queryParam("next-page", "main")
-                .build().toUriString();
+        return buildRedirectUrl(targetUrl, consumerId, newAccessToken, "main");
     }
 
     /**
-     * 로그아웃 처리 로직
+     * 🔹 프로필 변경이 필요한 경우에만 실행되는 트랜잭션
      */
-    public void logoutUser() {
+    private void updateProfile(Consumer consumer, OAuth2UserPrincipal principal) {
+        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
+        consumer.updateProfileImageUrl(newProfileUrl);
+        consumerRepository.save(consumer);
+        log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+    }
+
+    // 토큰을 응답 헤더에 추가하는 메서드
+    private void sendTokenResponse(HttpServletResponse response, String accessToken) {
+        response.setHeader("Authorization", "Bearer " + accessToken);
+        response.addHeader("Access-Control-Expose-Headers", "Authorization");
+    }
+
+    // ✅ URL 생성 메서드 분리
+    private String buildRedirectUrl(String targetUrl, Long consumerId, String accessToken, String nextPage) {
+        return UriComponentsBuilder.fromUriString(targetUrl)
+                .queryParam("consumer-id", consumerId)
+                .queryParam("access-token", accessToken)
+                .queryParam("next-page", nextPage)
+                .build().toUriString();
+    }
+
+    // 로그아웃 처리 로직
+    @Transactional
+    public void logoutUser(HttpServletRequest request, HttpServletResponse response) {
         Long consumerId = Long.valueOf(securityUtil.getConsumer().getId());
-        String kakaoAccessToken = redisJwtRepository.getKakaoAccessToken(consumerId);
         log.info("logoutUser: "+consumerId);
-        log.info("kakaoAccessToken: "+kakaoAccessToken);
 
-        // 1. 카카오 로그아웃 API 호출  전체 삭제인지?
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + kakaoAccessToken);
-        HttpEntity<String> entity = new HttpEntity<>(headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity("https://kapi.kakao.com/v1/user/logout", entity, String.class);
-
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            // 에러 처리
-            throw new RuntimeException("Failed to logout from Kakao");
-        }
-
-        // 2. 로컬 로그아웃 처리: 토큰 무효화
-        // 레디스에서 해당 사용자의 액세스 토큰 및 리프레시 토큰 및 카카오 액세스 토큰 삭제
-        redisJwtRepository.deleteAccessToken(consumerId);
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
+
+        // 리프레쉬 토큰 쿠키 삭제 (액세스 토큰은 헤더로 전달되었으므로 별도 쿠키 삭제 필요 없음)
+        deleteCookie(request, response, "Refresh-Token");
     }
 
     /**
      * 회원탈퇴 처리 로직
      */
-    public String handleUnlink(OAuth2UserPrincipal principal, String targetUrl) {
+    @Transactional
+    public String handleUnlink(OAuth2UserPrincipal principal, String targetUrl, HttpServletRequest request, HttpServletResponse response) {
         String socialId = principal.getUserInfo().getId();
         String accessToken = principal.getUserInfo().getAccessToken();
         OAuth2Provider provider = principal.getUserInfo().getProvider();
@@ -217,12 +231,14 @@ public class ConsumerService {
         oAuth2UserUnlinkManager.unlink(provider, accessToken);
 
         // Redis 토큰 삭제
-        redisJwtRepository.deleteAccessToken(consumerId);
         redisJwtRepository.deleteRefreshToken(consumerId);
         redisJwtRepository.deleteKakaoAccessToken(consumerId);
 
         // 사용자 논리 삭제
         withdrawConsumer(consumerId);
+
+        // 쿠키 삭제
+        deleteCookie(request, response, "Refresh-Token");
 
         log.info("회원탈퇴 완료: consumerId={}", consumerId);
 
@@ -240,18 +256,7 @@ public class ConsumerService {
         consumer.updateInfo(putConsumerInfoRequestDto);
     }
 
-    /**
-     * 프로필 업데이트 메서드
-     */
-    private void updateProfileIfChanged(Consumer consumer, OAuth2UserPrincipal principal) {
-        String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
-        if (!newProfileUrl.equals(consumer.getProfileImageUrl())) {
-            consumer.updateProfileImageUrl(newProfileUrl);
-            consumerRepository.save(consumer);
-            log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
-        }
-    }
-
+    @Transactional(readOnly = true)
     public Boolean isConsumerInProgressOrAttendanceFunding() {
         Long consumerId = Long.valueOf(securityUtil.getConsumer().getId());
         log.info("진행 중이거나 참여 중인 펀딩 확인, 사용자 ID: {}", consumerId);

@@ -6,6 +6,7 @@ import com.d201.fundingift._common.oauth2.handler.OAuth2AuthenticationFailureHan
 import com.d201.fundingift._common.oauth2.handler.OAuth2AuthenticationSuccessHandler;
 import com.d201.fundingift._common.oauth2.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -15,6 +16,11 @@ import org.springframework.security.config.annotation.web.configurers.HeadersCon
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
 
 import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
@@ -29,11 +35,14 @@ public class SecurityConfig {
     private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
     private final JwtAuthorizationFilter jwtAuthorizationFilter;
 
+    @Value("${base-url}")
+    private String baseUrl;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // CORS 설정 (기본 설정 사용)
-//                .cors(Customizer.withDefaults())
+                // CORS 설정 적용: corsConfigurationSource() 메서드에서 정의한 설정 사용
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // CSRF 보호 기능 비활성화
                 .csrf(AbstractHttpConfigurer::disable)
                 // HTTP 기본 인증 비활성화
@@ -66,6 +75,26 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthorizationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // 허용할 출처: 로컬 및 배포 환경 URL
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", baseUrl));
+        // 허용할 HTTP 메서드
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
+        // 허용할 헤더
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Cache-Control"));
+        // 쿠키 등 자격 증명 포함 여부
+        configuration.setAllowCredentials(true);
+        // preflight 요청의 캐싱 시간 (초 단위)
+        configuration.setMaxAge(3000L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // 모든 경로에 대해 위의 CORS 설정 적용
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
 

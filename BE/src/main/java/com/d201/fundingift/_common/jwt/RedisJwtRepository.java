@@ -12,11 +12,6 @@ public class RedisJwtRepository implements JwtRepository {
     private final StringRedisTemplate redisTemplate;
 
     @Override
-    public void saveAccessToken(Long consumerId, String accessToken) {
-        redisTemplate.opsForValue().set("accessToken:" + consumerId, accessToken);
-    }
-
-    @Override
     public void saveRefreshToken(Long consumerId, String refreshToken) {
         redisTemplate.opsForValue().set("refreshToken:" + consumerId, refreshToken);
     }
@@ -27,11 +22,6 @@ public class RedisJwtRepository implements JwtRepository {
     }
 
     @Override
-    public String getAccessToken(Long consumerId) {
-        return (String) redisTemplate.opsForValue().get("accessToken:" + consumerId);
-    }
-
-    @Override
     public String getRefreshToken(Long consumerId) {
         return (String) redisTemplate.opsForValue().get("refreshToken:" + consumerId);
     }
@@ -39,11 +29,6 @@ public class RedisJwtRepository implements JwtRepository {
     @Override
     public String getKakaoAccessToken(Long consumerId) {
         return (String) redisTemplate.opsForValue().get("kakaoAccessToken:" + consumerId);
-    }
-
-    @Override
-    public void deleteAccessToken(Long consumerId) {
-        redisTemplate.delete("accessToken:" + consumerId);
     }
 
     @Override

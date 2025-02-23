@@ -25,11 +25,11 @@ import java.util.Date;
 public class JwtUtil {
 
     //private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 30; // 30min
-    private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 3000; // 3000분
-    private static final long REFRESH_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 60 * 24 * 7; // 7일
+    private static final long ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 30; // 30초
+    private static final long REFRESH_TOKEN_EXPIRE_TIME_IN_MILLISECONDS = 1000 * 60 * 60; // 60분
 //    private final RedisTemplate redisTemplate;
 
-    
+
     @Value("${jwt.secret}")
     private String secret;
     private Key key;
@@ -148,5 +148,13 @@ public class JwtUtil {
             // 다른 종류의 예외가 발생했을 때는 null을 반환하거나 적절하게 처리
             return null;
         }
+    }
+
+    public int getAccessTokenExpiry() {
+        return (int) (ACCESS_TOKEN_EXPIRE_TIME_IN_MILLISECONDS / 1000); // 초 단위 반환
+    }
+
+    public int getRefreshTokenExpiry() {
+        return (int) (REFRESH_TOKEN_EXPIRE_TIME_IN_MILLISECONDS / 1000); // 초 단위 반환
     }
 }

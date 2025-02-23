@@ -14,6 +14,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -87,9 +89,9 @@ public class ConsumerController {
     )
     // 로그아웃
     @PostMapping("/logout")
-    public SuccessResponse<Void> postLogoutUser() {
+    public SuccessResponse<Void> postLogoutUser(HttpServletRequest request, HttpServletResponse response) {
         log.info("ConsumerController.postLogoutUser");
-        consumerService.logoutUser();
+        consumerService.logoutUser(request, response);
         // 로그아웃 성공 응답 반환
         return ResponseUtils.ok(SuccessType.LOGOUT_SUCCESS);
     }
