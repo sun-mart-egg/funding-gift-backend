@@ -26,7 +26,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
     private static final String REFRESH_TOKEN_KEY_PREFIX = "refreshToken:";
     private static final String BEARER_PREFIX = "Bearer ";
     private final JwtUtil jwtUtil;
-    private final RedisTemplate<String, String> redisTemplate; // RedisTemplate 추가
+    private final RedisJwtRepository redisJwtRepository;
+    //private final RedisTemplate<String, String> redisTemplate; // RedisTemplate 추가
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
@@ -95,8 +96,8 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
         }
 
         // 2. Redis에서 해당 사용자의 리프레쉬 토큰을 조회합니다.
-        String refreshTokenKey = REFRESH_TOKEN_KEY_PREFIX + consumerId;
-        String storedRefreshToken = redisTemplate.opsForValue().get(refreshTokenKey);
+        //String refreshTokenKey = REFRESH_TOKEN_KEY_PREFIX + consumerId;
+        String storedRefreshToken = redisJwtRepository.getRefreshToken(consumerId);
 
         // 3. 쿠키에서 제공한 토큰과 Redis에 저장된 토큰이 일치하며, 토큰이 유효한지 확인합니다.
         if (StringUtils.hasText(storedRefreshToken) &&providedRefreshToken.equals(storedRefreshToken) &&
@@ -108,7 +109,7 @@ public class JwtAuthorizationFilter extends OncePerRequestFilter {
             String newRefreshToken = jwtUtil.createRefreshToken(userId);
 
             // Redis에 새로운 리프레쉬 토큰 저장 (기존 토큰 덮어씌우기)
-            redisTemplate.opsForValue().set(refreshTokenKey, newRefreshToken);
+            redisJwtRepository.saveRefreshToken(consumerId,newRefreshToken);
 
             // SecurityContext를 새로운 액세스 토큰 기반으로 업데이트합니다.
             setAuthenticationFromToken(newAccessToken);
