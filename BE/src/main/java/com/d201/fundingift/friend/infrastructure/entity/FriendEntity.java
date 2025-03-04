@@ -11,7 +11,11 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 
 @Entity
-@Table(name = "friend")
+@Table(name = "friend",
+        uniqueConstraints = @UniqueConstraint(
+                name = "unique_friend",
+                columnNames = {"consumer_id", "to_consumer_id"}
+        ))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class FriendEntity extends BaseTime {
