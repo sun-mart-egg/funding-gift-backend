@@ -99,6 +99,7 @@ public class ConsumerService {
      * - 회원 정보가 존재하지 않으면 회원가입 처리
      * - 존재하면 로그인 처리
      */
+    @Transactional
     public String handleLoginOrRegister(OAuth2UserPrincipal principal, String targetUrl, HttpServletResponse response) {
         String socialId = principal.getUserInfo().getId();
         Optional<Consumer> consumerOptional = findBySocialId(socialId);
@@ -115,7 +116,6 @@ public class ConsumerService {
     /**
      * 회원가입 처리 로직
      */
-    @Transactional
     public String registerUser(OAuth2UserPrincipal principal, String targetUrl, HttpServletResponse response) {
         Long consumerId = saveOAuth2User(principal);
         log.info("회원가입 완료: consumerId={}", consumerId);
@@ -154,7 +154,6 @@ public class ConsumerService {
     /**
      * 로그인 처리 로직
      */
-    @Transactional
     public String loginUser(OAuth2UserPrincipal principal, Consumer consumer, String targetUrl, HttpServletResponse response) {
         Long consumerId = consumer.getId();
 
@@ -181,9 +180,10 @@ public class ConsumerService {
      */
     private void updateProfile(Consumer consumer, OAuth2UserPrincipal principal) {
         String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
-        consumer.updateProfileImageUrl(newProfileUrl);
-        consumerRepository.save(consumer);
-        log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+        if (!consumer.getProfileImageUrl().equals(newProfileUrl)) { // 변경 감지
+            consumer.updateProfileImageUrl(newProfileUrl);
+            log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+        }
     }
 
     // 토큰을 응답 헤더에 추가하는 메서드
@@ -282,7 +282,6 @@ public class ConsumerService {
     }
 
     // 회원탈퇴
-    @Transactional
     public void withdrawConsumer(Long consumerId){
         Consumer consumer = consumerRepository.findByIdAndDeletedAtIsNull(consumerId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 소비자 ID 입니다"));
