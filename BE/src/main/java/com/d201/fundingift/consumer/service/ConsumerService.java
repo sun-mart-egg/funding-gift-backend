@@ -180,9 +180,10 @@ public class ConsumerService {
      */
     private void updateProfile(Consumer consumer, OAuth2UserPrincipal principal) {
         String newProfileUrl = principal.getUserInfo().getProfileImageUrl();
-        consumer.updateProfileImageUrl(newProfileUrl);
-        consumerRepository.save(consumer);
-        log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+        if (!consumer.getProfileImageUrl().equals(newProfileUrl)) { // 변경 감지
+            consumer.updateProfileImageUrl(newProfileUrl);
+            log.info("프로필 업데이트 완료: consumerId={}, newProfileUrl={}", consumer.getId(), newProfileUrl);
+        }
     }
 
     // 토큰을 응답 헤더에 추가하는 메서드
