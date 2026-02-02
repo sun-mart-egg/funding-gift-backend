@@ -241,8 +241,8 @@ public class FundingController {
     })
     @GetMapping("/feed")
     public SuccessResponse<SliceList<GetFundingResponse>> getFundingFeeds(
-            @PageableDefault(size=3, sort="startDate", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size=3) Pageable pageable) {
 
-        return ResponseUtils.ok(fundingService.getFundingFeeds(pageable), GET_FUNDINGS_FEED_SUCCESS);
+        return ResponseUtils.ok(fundingService.getFundingFeeds(securityUtil.getConsumer().getId(), pageable), GET_FUNDINGS_FEED_SUCCESS);
     }
 }

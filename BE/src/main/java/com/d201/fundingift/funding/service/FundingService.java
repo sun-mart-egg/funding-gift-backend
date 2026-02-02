@@ -9,6 +9,7 @@ import com.d201.fundingift.consumer.entity.Consumer;
 import com.d201.fundingift.consumer.repository.ConsumerRepository;
 import com.d201.fundingift.friend.domain.Friend;
 import com.d201.fundingift.friend.domain.port.FriendRepository;
+import com.d201.fundingift.funding.domain.port.FundingRepository;
 import com.d201.fundingift.funding.domain.status.FundingStatus;
 import com.d201.fundingift.funding.dto.request.DeleteFundingRequest;
 import com.d201.fundingift.funding.dto.response.GetFundingCalendarResponse;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 public class FundingService {
 
     private final FundingJPARepository fundingJPARepository;
+    private final FundingRepository fundingRepository;
     private final AttendanceRepository attendanceRepository;
     private final ConsumerRepository consumerRepository;
     private final FriendRepository friendRepository;
@@ -99,13 +101,19 @@ public class FundingService {
         }
     }
 
-    public SliceList<GetFundingResponse> getFundingFeeds(Pageable pageable) {
-        Long myConsumerId = securityUtil.getConsumerId();
+//    public SliceList<GetFundingResponse> getFundingFeeds(Pageable pageable) {
+//        Long myConsumerId = securityUtil.getConsumerId();
+//
+//        //친구 리스트 조회
+//        List<Friend> friends = friendRepository.findAllByConsumerId(myConsumerId);
+//
+//        return getFundingsFeedSliceList(findAllByConsumerIdsAndFundingStatus(friends, pageable), friends);
+//    }
 
-        //친구 리스트 조회
-        List<Friend> friends = friendRepository.findAllByConsumerId(myConsumerId);
+    public SliceList<GetFundingResponse> getFundingFeeds(Long consumerId, Pageable pageable) {
+        Slice<FundingEntity> fundings = fundingRepository.findAllFriendsFunding(consumerId, pageable);
 
-        return getFundingsFeedSliceList(findAllByConsumerIdsAndFundingStatus(friends, pageable), friends);
+        return SliceList.from(fundings.stream().map(GetFundingResponse::from).collect(Collectors.toList()), fundings.getPageable(), fundings.hasNext());
     }
 
     public List<GetFundingResponse> getFundingsStory(Long consumerId) {

@@ -81,13 +81,15 @@ public class FundingPostServiceTest {
                 .build();
 
         LocalDate now = LocalDate.now();
+        System.out.println(now);
+        System.out.println(now.plusDays(7));
         PostFundingRequest postFundingRequest = PostFundingRequest.builder()
                 .productId(1L)
                 .productOptionId(1L)
                 .anniversaryCategoryId(1)
                 .anniversaryDate(now.plusDays(3))
                 .startDate(now)
-                .endDate(now.plusDays(6))
+                .endDate(now.plusDays(7))
                 .targetPrice(50000)
                 .minPrice(1000)
                 .title("내 생일이야")

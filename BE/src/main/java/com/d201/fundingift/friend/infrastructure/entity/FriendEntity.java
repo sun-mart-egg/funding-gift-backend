@@ -15,7 +15,10 @@ import org.hibernate.annotations.ColumnDefault;
         uniqueConstraints = @UniqueConstraint(
                 name = "unique_friend",
                 columnNames = {"consumer_id", "to_consumer_id"}
-        ))
+        ),
+        indexes = {
+                @Index(name = "idx_friend_favorite", columnList = "consumer_id, to_consumer_id, is_favorite")
+        })
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class FriendEntity extends BaseTime {

@@ -15,7 +15,9 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 @Entity
-@Table(name = "funding")
+@Table(name = "funding", indexes = {
+        @Index(name = "idx_funding_feed", columnList = "consumer_id, is_private, deleted_at")
+})
 @Getter
 @ToString
 @DynamicInsert

@@ -64,4 +64,58 @@ public interface FundingJPARepository extends JpaRepository<FundingEntity, Long>
     @Query("select f from FundingEntity f where f.fundingStatus = :fundingStatus and f.endDate = :date and f.deletedAt IS NULL")
     List<FundingEntity> findAllByFundingStatusAndEndDateAndDateAndDeletedAtIsNull(@Param("fundingStatus")FundingStatus fundingStatus, @Param("date") LocalDate date);
 
+    /**
+     * 펀딩 피드 조회 - UNION ALL 방식으로 최적화
+     * 1. 공개 펀딩 (isPrivate = false): 내 친구의 공개 펀딩
+     * 2. 친한 친구 공개 펀딩 (isPrivate = true): 친구가 나를 친한 친구로 설정한 경우의 비공개 펀딩
+     */
+    @Query(value = """
+        SELECT * FROM (
+            SELECT f.* FROM funding f
+            INNER JOIN friend fr ON fr.to_consumer_id = f.consumer_id
+            WHERE fr.consumer_id = :consumerId
+              AND f.is_private = false
+              AND f.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT f.* FROM funding f
+            INNER JOIN friend fr ON fr.to_consumer_id = f.consumer_id
+            WHERE fr.consumer_id = :consumerId
+              AND f.is_private = true
+              AND f.deleted_at IS NULL
+              AND EXISTS (
+                SELECT 1 FROM friend fr2
+                WHERE fr2.consumer_id = f.consumer_id
+                  AND fr2.to_consumer_id = :consumerId
+                  AND fr2.is_favorite = true
+              )
+        ) AS combined_funding
+        ORDER BY combined_funding.created_at DESC
+        """,
+        countQuery = """
+        SELECT COUNT(*) FROM (
+            SELECT f.funding_id FROM funding f
+            INNER JOIN friend fr ON fr.to_consumer_id = f.consumer_id
+            WHERE fr.consumer_id = :consumerId
+              AND f.is_private = false
+              AND f.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT f.funding_id FROM funding f
+            INNER JOIN friend fr ON fr.to_consumer_id = f.consumer_id
+            WHERE fr.consumer_id = :consumerId
+              AND f.is_private = true
+              AND f.deleted_at IS NULL
+              AND EXISTS (
+                SELECT 1 FROM friend fr2
+                WHERE fr2.consumer_id = f.consumer_id
+                  AND fr2.to_consumer_id = :consumerId
+                  AND fr2.is_favorite = true
+              )
+        ) AS count_query
+        """,
+        nativeQuery = true)
+    Slice<FundingEntity> findAllFriendsFunding(@Param("consumerId") Long consumerId, Pageable pageable);
 }
